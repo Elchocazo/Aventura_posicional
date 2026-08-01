@@ -1,0 +1,6 @@
+{
+  "name": "Aventura Posicional",
+  "description": "Aplicación móvil interactiva para aprender valor posicional, sumas y restas con mascotas, estrellas y retos.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

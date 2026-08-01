@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+/* CLAYMORPHISM STYLES */
+.clay-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 1.75rem;
+  box-shadow: 6px 8px 20px rgba(186, 230, 253, 0.45), inset -4px -4px 8px rgba(14, 165, 233, 0.06), inset 4px 4px 10px rgba(255, 255, 255, 1);
+  border: 2px solid rgba(224, 242, 254, 0.9);
+}
+
+.clay-card-amber {
+  background: #fffdf5;
+  border-radius: 1.5rem;
+  box-shadow: 5px 7px 16px rgba(254, 215, 170, 0.5), inset -3px -3px 6px rgba(234, 88, 12, 0.05), inset 3px 3px 8px rgba(255, 255, 255, 1);
+  border: 2px solid #fef3c7;
+}
+
+.clay-card-sky {
+  background: #f0f9ff;
+  border-radius: 1.5rem;
+  box-shadow: 5px 7px 16px rgba(186, 230, 253, 0.55), inset -3px -3px 6px rgba(2, 132, 199, 0.06), inset 3px 3px 8px rgba(255, 255, 255, 1);
+  border: 2px solid #e0f2fe;
+}
+
+.clay-card-purple {
+  background: #faf5ff;
+  border-radius: 1.5rem;
+  box-shadow: 5px 7px 16px rgba(233, 213, 255, 0.55), inset -3px -3px 6px rgba(147, 51, 234, 0.06), inset 3px 3px 8px rgba(255, 255, 255, 1);
+  border: 2px solid #f3e8ff;
+}
+
+.clay-card-rose {
+  background: #fff1f2;
+  border-radius: 1.25rem;
+  box-shadow: 4px 6px 14px rgba(254, 205, 211, 0.55), inset -2px -2px 5px rgba(225, 29, 72, 0.06), inset 2px 2px 6px rgba(255, 255, 255, 1);
+  border: 2px solid #ffe4e6;
+}
+
+.clay-card-orange {
+  background: #fff7ed;
+  border-radius: 1.25rem;
+  box-shadow: 4px 6px 14px rgba(254, 215, 170, 0.55), inset -2px -2px 5px rgba(234, 88, 12, 0.06), inset 2px 2px 6px rgba(255, 255, 255, 1);
+  border: 2px solid #ffedd5;
+}
+
+.clay-btn-sky {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  color: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 0 #0369a1, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  transition: all 0.1s ease;
+}
+.clay-btn-sky:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #0369a1, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+.clay-btn-emerald {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  color: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 0 #047857, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  transition: all 0.1s ease;
+}
+.clay-btn-emerald:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #047857, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+.clay-btn-purple {
+  background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%);
+  color: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 0 #7e22ce, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  transition: all 0.1s ease;
+}
+.clay-btn-purple:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #7e22ce, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+.clay-btn-amber {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  color: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 0 #b45309, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  transition: all 0.1s ease;
+}
+.clay-btn-amber:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #b45309, inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+.clay-btn-white {
+  background: #ffffff;
+  color: #334155;
+  border-radius: 1.25rem;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 4px 0 #cbd5e1, inset 0 2px 4px rgba(255, 255, 255, 0.8);
+  transition: all 0.1s ease;
+}
+.clay-btn-white:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #cbd5e1, inset 0 2px 4px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes floatMascot {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(2deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(0, 180, 216, 0.3); }
+  50% { box-shadow: 0 0 22px rgba(0, 180, 216, 0.7); }
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-float {
+  animation: floatMascot 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+.animate-shake {
+  animation: shakeError 0.4s ease-in-out;
+}
+
+/* Touch friendly rules */
+* {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Print Stylesheet for Worksheet PDF */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
+

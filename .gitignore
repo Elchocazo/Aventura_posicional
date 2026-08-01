@@ -1,0 +1,20 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.idea/
+
+# Android Studio & Gradle
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+android/captures/
+android/local.properties
+*.apk
+*.aab
