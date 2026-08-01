@@ -381,8 +381,9 @@
         }
 
         .digit-btn {
-            width: 52px;
+            min-width: 52px;
             height: 52px;
+            padding: 0 10px;
             border-radius: 14px;
             background: linear-gradient(135deg, #00B4D8, #0077B6);
             color: white;
@@ -406,7 +407,14 @@
         }
 
         .digit-btn.distractor { background: linear-gradient(135deg, #7209B7, #3F37C9); }
-        .digit-btn.carry-digit { background: linear-gradient(135deg, #FF477E, #F72585); width: 44px; height: 44px; font-size: 1.3rem; }
+        .digit-btn.carry-digit {
+            background: linear-gradient(135deg, #FF477E, #F72585);
+            min-width: 44px;
+            height: 44px;
+            font-size: 1.25rem;
+            padding: 0 8px;
+            border-radius: 12px;
+        }
 
         .math-board {
             background: white;
@@ -456,20 +464,21 @@
 
         .carry-zone {
             width: 65px;
-            height: 38px;
+            height: 40px;
             border: 2px dashed #CBD5E0;
-            border-radius: 8px;
+            border-radius: 10px;
             background: #F8FAFC;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Outfit', sans-serif;
-            font-size: 1rem;
-            font-weight: 800;
+            font-size: 1.25rem;
+            font-weight: 900;
             color: var(--primary-pink);
             cursor: pointer;
             margin: 0 auto;
             transition: var(--transition);
+            letter-spacing: -0.5px;
         }
 
         .carry-zone.filled { background: #FFE5EC; border-style: solid; border-color: var(--primary-pink); }
@@ -494,7 +503,7 @@
             position: relative;
         }
 
-        /* TACHADO DIAGONAL EN ROJO PARA RESTAS CON PRÉSTAMO (~~5~~) */
+        /* TACHADO DIAGONAL EN ROJO PARA RESTAS CON PRÉSTAMO (~~0~~, ~~6~~) */
         .cell-zone.strikethrough {
             background: linear-gradient(135deg, transparent 44%, #EF4444 46%, #EF4444 54%, transparent 56%) !important;
             color: #94A3B8 !important;
@@ -1027,7 +1036,7 @@
             .right-header-group { flex-direction: column; gap: 8px; }
             .cell-zone { width: 50px; height: 50px; font-size: 1.5rem; }
             .carry-zone { width: 50px; height: 32px; font-size: 0.9rem; }
-            .digit-btn { width: 46px; height: 46px; font-size: 1.4rem; }
+            .digit-btn { min-width: 46px; height: 46px; font-size: 1.4rem; }
             .sticky-top-bar { padding: 8px 12px; flex-direction: column; text-align: center; }
         }
     </style>
@@ -2394,7 +2403,7 @@
                 zone.addEventListener('click', () => {
                     if (zone.classList.contains('locked') || zone.classList.contains('disabled-cell')) return;
 
-                    // INTERACCIÓN DE PRÉSTAMO EN RESTAS: Tachar número al hacer clic en el minuendo (num1)
+                    // INTERACCIÓN DE PRÉSTAMO EN RESTAS: Tachar CUALQUIER número al hacer clic en el minuendo (num1)
                     if (this.operation === '-' && zone.dataset.row === 'num1' && zone.classList.contains('filled')) {
                         const isStruck = zone.classList.toggle('strikethrough');
                         this.sound.playPop();
@@ -2404,7 +2413,7 @@
                         if (topCarry) {
                             if (isStruck) {
                                 topCarry.classList.add('borrow-active');
-                                this.showToast('✏️ Número tachado. Coloca arriba en la casilla roja el valor disminuido en 1.', 'info');
+                                this.showToast('✏️ Número tachado. Coloca arriba en la casilla el valor transformado (ej: 10, 5, etc.)', 'info');
                             } else {
                                 topCarry.classList.remove('borrow-active');
                             }
@@ -2413,18 +2422,28 @@
                     }
 
                     if (this.selectedDigitBtn) {
-                        zone.textContent = this.selectedDigitBtn.dataset.value;
+                        const selectedVal = this.selectedDigitBtn.dataset.value;
+
+                        // Si es una casilla de préstamo (carry-zone) y ya tiene un dígito (ej: '1'), y seleccionan otro dígito (ej: '0'), formar '10'
+                        if (zone.dataset.type === 'carry' && zone.textContent !== '' && zone.textContent.length === 1 && selectedVal.length === 1) {
+                            zone.textContent = zone.textContent + selectedVal;
+                        } else {
+                            zone.textContent = selectedVal;
+                        }
+
                         zone.classList.add('filled');
-                        this.selectedDigitBtn.style.visibility = 'hidden';
-                        this.selectedDigitBtn.classList.remove('selected');
-                        this.selectedDigitBtn = null;
+                        if (this.selectedDigitBtn) {
+                            this.selectedDigitBtn.style.visibility = 'hidden';
+                            this.selectedDigitBtn.classList.remove('selected');
+                            this.selectedDigitBtn = null;
+                        }
                         this.sound.playPop();
                         this.checkPhaseCompletion();
                     } else if (zone.textContent !== '') {
                         const val = zone.textContent;
                         zone.textContent = '';
                         zone.classList.remove('filled');
-                        zone.classList.remove('strikethrough');
+                        zone.classList.remove('borrow-active');
                         this.returnDigitToBank(val);
                         this.sound.playSelect();
                         this.checkPhaseCompletion();
@@ -2444,7 +2463,11 @@
 
                     const val = e.dataTransfer.getData('text/plain');
                     if (val) {
-                        zone.textContent = val;
+                        if (zone.dataset.type === 'carry' && zone.textContent !== '' && zone.textContent.length === 1 && val.length === 1) {
+                            zone.textContent = zone.textContent + val;
+                        } else {
+                            zone.textContent = val;
+                        }
                         zone.classList.add('filled');
                         this.sound.playPop();
                         this.checkPhaseCompletion();
@@ -2498,10 +2521,13 @@
                 const distractors = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
                     .filter(d => !resDigits.includes(d))
                     .sort(() => 0.5 - Math.random())
-                    .slice(0, 3);
+                    .slice(0, 2);
 
-                // En Restas, agregar fichas adicionales de préstamo (como '1' o valores disminuidos)
-                const carries = this.operation === '-' ? ['1', '1', '0', '2', '3', '4', '5', '6', '7', '8'] : ['1', '1'];
+                // En Restas, agregar fichas de transformación directa (como '10', '11', '12', '13', '14', '15', '16', '17', '18') y fichas individuales
+                const carries = this.operation === '-'
+                    ? ['10', '11', '12', '13', '14', '15', '16', '17', '18', '9', '8', '7', '6', '5', '4', '3', '2', '1', '0']
+                    : ['1', '1'];
+
                 const pool = [...resDigits, ...distractors, ...carries];
                 const shuffled = this.shuffleArray(pool);
 
@@ -2509,7 +2535,7 @@
                     const btn = document.createElement('div');
                     btn.className = 'digit-btn';
                     if (distractors.includes(digit)) btn.classList.add('distractor');
-                    if (digit === '1') btn.classList.add('carry-digit');
+                    if (digit.length > 1 || digit === '1' || parseInt(digit) >= 10) btn.classList.add('carry-digit');
 
                     btn.textContent = digit;
                     btn.dataset.value = digit;
@@ -2576,7 +2602,7 @@
                 this.sound.playSuccess();
 
                 if (this.operation === '-') {
-                    this.showToast('💡 Resta: Puedes tocar un número para TACHARLO (~~5~~) si necesita prestar a su derecha.', 'info');
+                    this.showToast('💡 Resta: Haz clic en CUALQUIER número para TACHARLO (~~0~~) y colocar arriba su transformación (ej: 10, 5, etc.).', 'info');
                 } else {
                     this.showToast('¡Excelente acomodación! Ahora calcula la respuesta columna por columna 🎯', 'info');
                 }
@@ -2750,7 +2776,7 @@
                 if (this.gamePhase === 'placing') {
                     this.showToast(`💡 Pista: Las Unidades (U) van a la extrema derecha. Números: ${this.num1.toLocaleString()} y ${this.num2.toLocaleString()}`, 'info');
                 } else if (this.operation === '-') {
-                    this.showToast(`💡 Resta Prestando: Haz clic en el número de arriba para TACHARLO (~~5~~) si es menor que el de abajo.`, 'info');
+                    this.showToast(`💡 Resta Prestando: Haz clic en CUALQUIER número para TACHARLO (~~0~~) y colocar arriba su valor transformado (ej: 10, 5, etc.).`, 'info');
                 } else {
                     const expected = this.operation === '+' ? this.num1 + this.num2 : this.num1 - this.num2;
                     this.showToast(`💡 Pista: Suma/Resta columna por columna desde Unidades. Resultado total: ${expected.toLocaleString()}`, 'info');
@@ -2766,8 +2792,8 @@
                     title.textContent = '🔢 Fichas de Números (Toca una ficha y luego toca una casilla)';
                 } else if (this.gamePhase === 'calculating') {
                     if (this.operation === '-') {
-                        hint.textContent = '✏️ En Restas: Haz clic en un número del minuendo para TACHARLO (~~5~~) y colocar arriba el valor que presta.';
-                        title.textContent = '🎯 Fichas para Préstamos y Resultados (Tacha un número si necesita prestar)';
+                        hint.textContent = '✏️ En Restas: Haz clic en CUALQUIER número del minuendo para TACHARLO (~~0~~, ~~6~~) y colocar arriba el valor que recibe o presta (ej: 10, 5, etc.).';
+                        title.textContent = '🎯 Fichas para Préstamos y Resultados (Puedes usar fichas de 10, 12, etc. o combinar dígitos)';
                     } else {
                         hint.textContent = '🧮 Paso 2: ¡Calcula el resultado! Puedes usar las casillas superiores para las llevadas.';
                         title.textContent = '🎯 Fichas para el Resultado y Llevadas (¡Cuidado con las fichas trampas!)';
