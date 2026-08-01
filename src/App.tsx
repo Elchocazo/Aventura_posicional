@@ -284,7 +284,7 @@ export default function App() {
     const fileName = `ficha${currentLevel}-${formattedNum}.pdf`;
 
     // Ruta del archivo dentro de la app (Capacitor sirve los archivos de public desde la raíz)
-    const fileUrl = `/fichas/grado${currentLevel}/${fileName}`;
+    const fileUrl = window.location.origin + `/fichas/grado${currentLevel}/${fileName}`;
 
     showToast(`📂 Procesando ${fileName}...`, 'info');
 
@@ -304,7 +304,7 @@ export default function App() {
       });
       const base64Data = await base64Promise;
 
-      // 3. Escribimos el archivo en el sistema de archivos del celular (Memoria temporal segura)
+      // 3. Escribimos el archivo en el sistema de archivos del celular (Carpeta Temporal)
       const savedFile = await Filesystem.writeFile({
         path: fileName,
         data: base64Data,
@@ -312,11 +312,10 @@ export default function App() {
       });
 
       // 4. Usamos el menú Compartir nativo de Android.
-      // Al elegir "Guardar en dispositivo", el sistema Android iniciará la descarga real
-      // y mostrará la NOTIFICACIÓN oficial en la barra superior.
+      // IMPORTANTE: Pasamos el archivo REAL (savedFile.uri) para activar la descarga del sistema.
       await Share.share({
-        title: `Descargar Ficha Grado ${currentLevel}`,
-        files: [savedFile.uri], // Enviamos el archivo real, no una URL
+        title: `Descargar Ficha N° ${formattedNum}`,
+        files: [savedFile.uri], // Enviamos el archivo físico
       });
 
       showToast(`✅ ¡Listo! Selecciona 'Guardar' para ver la notificación.`, 'success');
