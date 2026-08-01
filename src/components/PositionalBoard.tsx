@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { COLUMN_INFO } from '../data/constants';
 import { GamePhase, PositionalCol } from '../types';
 import { sound } from '../utils/sound';
@@ -26,7 +26,8 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
   onCellClick,
   incorrectResultCols,
 }) => {
-  // Determine digit length for cell layout
+  const [struckCells, setStruckCells] = useState<Record<string, boolean>>({});
+
   const maxDigits = activeCols.length;
 
   const getCellValue = (row: string, col: PositionalCol): string => {
@@ -46,7 +47,6 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
     }
   };
 
-  // Check if cell is disabled in num1 or num2 based on number length
   const isCellDisabled = (row: string, col: PositionalCol): boolean => {
     const valStr = row === 'num1' ? num1.toString() : row === 'num2' ? num2.toString() : '';
     if (!valStr) return false;
@@ -54,6 +54,15 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
     const colIdx = activeCols.indexOf(col);
     const requiredStartIndex = maxDigits - len;
     return colIdx < requiredStartIndex;
+  };
+
+  const toggleStrikethrough = (col: PositionalCol) => {
+    const key = `num1_${col}`;
+    setStruckCells((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+    sound.playPop();
   };
 
   return (
@@ -71,7 +80,7 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
         className="grid gap-1.5 sm:gap-2 justify-center items-center py-1 w-full max-w-full"
         style={{ gridTemplateColumns: `36px repeat(${activeCols.length}, minmax(0, 1fr))` }}
       >
-        {/* Row 1: Header Row with Color Dot Badges */}
+        {/* Row 1: Header Row */}
         <div className="w-9 text-center"></div>
         {activeCols.map((col) => {
           const info = COLUMN_INFO[col];
@@ -90,14 +99,15 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
           );
         })}
 
-        {/* Row 2: Carries Row (Llevadas) */}
+        {/* Row 2: Carries / Borrow Row */}
         <div className="w-9 font-black text-[10px] text-pink-600 text-center leading-tight flex flex-col items-center justify-center">
           <span>💡</span>
-          <span>Llev.</span>
+          <span>{operation === '-' ? 'Prést.' : 'Llev.'}</span>
         </div>
         {activeCols.map((col) => {
           const val = getCellValue('carry', col);
           const isFilled = Boolean(val);
+          const isStruckBelow = Boolean(struckCells[`num1_${col}`]);
           const canInteract = gamePhase === 'calculating';
 
           return (
@@ -107,9 +117,11 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
               onDragOver={handleDragOver}
               onDrop={(e) => canInteract && handleDrop(e, 'carry', col)}
               disabled={!canInteract}
-              className={`h-9 sm:h-11 w-full border-2 border-dashed rounded-lg sm:rounded-xl font-black text-xs sm:text-base flex items-center justify-center transition-all shadow-2xs ${
+              className={`h-9 sm:h-11 w-full border-2 border-dashed rounded-lg sm:rounded-xl font-black text-xs sm:text-sm flex items-center justify-center transition-all shadow-2xs ${
                 isFilled
                   ? 'border-pink-500 bg-pink-100 text-pink-800 border-solid scale-100'
+                  : isStruckBelow
+                  ? 'border-rose-400 bg-rose-50 text-rose-600 animate-pulse'
                   : canInteract
                   ? 'border-pink-300 bg-pink-50/60 hover:bg-pink-100 text-pink-500 hover:border-pink-400 cursor-pointer'
                   : 'border-slate-200 bg-slate-50 text-transparent cursor-not-allowed'
@@ -120,26 +132,37 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
           );
         })}
 
-        {/* Row 3: Num 1 Row */}
+        {/* Row 3: Num 1 Row (Minuendo) */}
         <div className="w-9 font-extrabold text-slate-400 text-center"></div>
         {activeCols.map((col) => {
           const disabled = isCellDisabled('num1', col);
           const val = getCellValue('num1', col);
           const isFilled = Boolean(val);
-          const canInteract = gamePhase === 'placing' && !disabled;
+          const isStruck = Boolean(struckCells[`num1_${col}`]);
+          const canInteract = (gamePhase === 'placing' && !disabled) || (operation === '-' && isFilled);
+
+          const handleClick = () => {
+            if (operation === '-' && isFilled) {
+              toggleStrikethrough(col);
+            } else if (gamePhase === 'placing' && !disabled) {
+              onCellClick('num1', col);
+            }
+          };
 
           return (
             <button
               key={`num1_${col}`}
-              onClick={() => canInteract && onCellClick('num1', col)}
+              onClick={handleClick}
               onDragOver={handleDragOver}
-              onDrop={(e) => canInteract && handleDrop(e, 'num1', col)}
+              onDrop={(e) => gamePhase === 'placing' && !disabled && handleDrop(e, 'num1', col)}
               disabled={!canInteract}
-              className={`h-12 sm:h-15 w-full border-2 rounded-xl sm:rounded-2xl font-black text-xl sm:text-3xl flex items-center justify-center transition-all ${
+              className={`h-12 sm:h-15 w-full border-2 rounded-xl sm:rounded-2xl font-black text-xl sm:text-3xl flex items-center justify-center transition-all relative ${
                 disabled
                   ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed opacity-40'
+                  : isStruck
+                  ? 'border-slate-300 bg-slate-100 text-slate-400 line-through decoration-red-500 decoration-4'
                   : isFilled
-                  ? 'border-sky-400 bg-sky-50/90 text-slate-900 border-solid shadow-2xs'
+                  ? 'border-sky-400 bg-sky-50/90 text-slate-900 border-solid shadow-2xs cursor-pointer'
                   : canInteract
                   ? 'border-dashed border-sky-300 bg-white hover:bg-sky-50 text-sky-600 cursor-pointer active:scale-95'
                   : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
@@ -150,7 +173,7 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
           );
         })}
 
-        {/* Row 4: Num 2 Row with Operator */}
+        {/* Row 4: Num 2 Row */}
         <div className="w-9 font-black text-xl sm:text-3xl text-sky-600 flex items-center justify-center">
           {operation}
         </div>
