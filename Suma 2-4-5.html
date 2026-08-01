@@ -469,9 +469,11 @@
             color: var(--primary-pink);
             cursor: pointer;
             margin: 0 auto;
+            transition: var(--transition);
         }
 
         .carry-zone.filled { background: #FFE5EC; border-style: solid; border-color: var(--primary-pink); }
+        .carry-zone.borrow-active { background: #FEF2F2 !important; border: 2.5px dashed #EF4444 !important; color: #DC2626 !important; }
 
         .cell-zone {
             width: 65px;
@@ -489,6 +491,14 @@
             cursor: pointer;
             margin: 0 auto;
             transition: var(--transition);
+            position: relative;
+        }
+
+        /* TACHADO DIAGONAL EN ROJO PARA RESTAS CON PRÉSTAMO (~~5~~) */
+        .cell-zone.strikethrough {
+            background: linear-gradient(135deg, transparent 44%, #EF4444 46%, #EF4444 54%, transparent 56%) !important;
+            color: #94A3B8 !important;
+            font-weight: 900;
         }
 
         .cell-zone.filled { border-style: solid; background: #F8FAFC; color: #1A202C; }
@@ -2384,6 +2394,24 @@
                 zone.addEventListener('click', () => {
                     if (zone.classList.contains('locked') || zone.classList.contains('disabled-cell')) return;
 
+                    // INTERACCIÓN DE PRÉSTAMO EN RESTAS: Tachar número al hacer clic en el minuendo (num1)
+                    if (this.operation === '-' && zone.dataset.row === 'num1' && zone.classList.contains('filled')) {
+                        const isStruck = zone.classList.toggle('strikethrough');
+                        this.sound.playPop();
+
+                        const col = zone.dataset.col;
+                        const topCarry = document.querySelector(`.carry-zone[data-col="${col}"]`);
+                        if (topCarry) {
+                            if (isStruck) {
+                                topCarry.classList.add('borrow-active');
+                                this.showToast('✏️ Número tachado. Coloca arriba en la casilla roja el valor disminuido en 1.', 'info');
+                            } else {
+                                topCarry.classList.remove('borrow-active');
+                            }
+                        }
+                        return;
+                    }
+
                     if (this.selectedDigitBtn) {
                         zone.textContent = this.selectedDigitBtn.dataset.value;
                         zone.classList.add('filled');
@@ -2396,6 +2424,7 @@
                         const val = zone.textContent;
                         zone.textContent = '';
                         zone.classList.remove('filled');
+                        zone.classList.remove('strikethrough');
                         this.returnDigitToBank(val);
                         this.sound.playSelect();
                         this.checkPhaseCompletion();
@@ -2471,7 +2500,8 @@
                     .sort(() => 0.5 - Math.random())
                     .slice(0, 3);
 
-                const carries = ['1', '1'];
+                // En Restas, agregar fichas adicionales de préstamo (como '1' o valores disminuidos)
+                const carries = this.operation === '-' ? ['1', '1', '0', '2', '3', '4', '5', '6', '7', '8'] : ['1', '1'];
                 const pool = [...resDigits, ...distractors, ...carries];
                 const shuffled = this.shuffleArray(pool);
 
@@ -2544,7 +2574,12 @@
 
                 this.gamePhase = 'calculating';
                 this.sound.playSuccess();
-                this.showToast('¡Excelente acomodación! Ahora calcula la respuesta columna por columna 🎯', 'info');
+
+                if (this.operation === '-') {
+                    this.showToast('💡 Resta: Puedes tocar un número para TACHARLO (~~5~~) si necesita prestar a su derecha.', 'info');
+                } else {
+                    this.showToast('¡Excelente acomodación! Ahora calcula la respuesta columna por columna 🎯', 'info');
+                }
 
                 document.querySelectorAll('.result-zone').forEach(zone => {
                     zone.classList.remove('locked');
@@ -2714,6 +2749,8 @@
                 this.sound.playPop();
                 if (this.gamePhase === 'placing') {
                     this.showToast(`💡 Pista: Las Unidades (U) van a la extrema derecha. Números: ${this.num1.toLocaleString()} y ${this.num2.toLocaleString()}`, 'info');
+                } else if (this.operation === '-') {
+                    this.showToast(`💡 Resta Prestando: Haz clic en el número de arriba para TACHARLO (~~5~~) si es menor que el de abajo.`, 'info');
                 } else {
                     const expected = this.operation === '+' ? this.num1 + this.num2 : this.num1 - this.num2;
                     this.showToast(`💡 Pista: Suma/Resta columna por columna desde Unidades. Resultado total: ${expected.toLocaleString()}`, 'info');
@@ -2728,8 +2765,13 @@
                     hint.textContent = '📝 Paso 1: Acomoda los dígitos en las filas correspondientes.';
                     title.textContent = '🔢 Fichas de Números (Toca una ficha y luego toca una casilla)';
                 } else if (this.gamePhase === 'calculating') {
-                    hint.textContent = '🧮 Paso 2: ¡Calcula el resultado! Puedes usar las casillas superiores para las llevadas.';
-                    title.textContent = '🎯 Fichas para el Resultado y Llevadas (¡Cuidado con las fichas trampas!)';
+                    if (this.operation === '-') {
+                        hint.textContent = '✏️ En Restas: Haz clic en un número del minuendo para TACHARLO (~~5~~) y colocar arriba el valor que presta.';
+                        title.textContent = '🎯 Fichas para Préstamos y Resultados (Tacha un número si necesita prestar)';
+                    } else {
+                        hint.textContent = '🧮 Paso 2: ¡Calcula el resultado! Puedes usar las casillas superiores para las llevadas.';
+                        title.textContent = '🎯 Fichas para el Resultado y Llevadas (¡Cuidado con las fichas trampas!)';
+                    }
                 }
             }
 
