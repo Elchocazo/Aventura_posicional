@@ -1,54 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  RotateCcw,
-  Calculator,
-  CheckCircle,
-  Lightbulb,
-  ArrowRight,
-  Sparkles,
-  GraduationCap,
-} from 'lucide-react';
-import {
-  GameMode,
-  GradeLevel,
-  GamePhase,
-  PositionalCol,
-  ProblemData,
-  StoreItem,
-  TeacherReportStats,
-} from './types';
-import {
-  LEVEL_CONFIGS,
-  ALL_COLUMNS,
-  STORY_THEMES,
-  STORE_MASCOTS,
-  STORE_ACCESSORIES,
-} from './data/constants';
-import { sound } from './utils/sound';
 import { Header } from './components/Header';
 import { StoryCard } from './components/StoryCard';
 import { PositionalBoard } from './components/PositionalBoard';
 import { DigitsBank } from './components/DigitsBank';
-import { BottomNav, TabType } from './components/BottomNav';
-import { StoreModal, StoreView } from './components/StoreModal';
-import { VictoryModal } from './components/VictoryModal';
-import { TeacherReportModal, TeacherReportView } from './components/TeacherReportModal';
-import { WorksheetPrintable } from './components/WorksheetPrintable';
-import { ProfileDashboard } from './components/ProfileDashboard';
+import { BottomNav } from './components/BottomNav';
+import { WelcomeModal } from './components/WelcomeModal';
 import { OptionsMenuModal } from './components/OptionsMenuModal';
+import { StoreModal } from './components/StoreModal';
+import { TeacherReportModal } from './components/TeacherReportModal';
+import { VictoryModal } from './components/VictoryModal';
 import { QrScannerModal } from './components/QrScannerModal';
 import { WorksheetShareModal } from './components/WorksheetShareModal';
-import { WelcomeModal } from './components/WelcomeModal';
+import { LEVEL_CONFIGS, STORY_THEMES, ALL_COLUMNS } from './data/constants';
+import { OperationMode, GradeLevel, GamePhase, PositionalCol, ProblemData, Chip, StoreItem } from './types';
+import { sound } from './utils/sound';
 
-// Plugins nativos de Capacitor
-import { Share } from '@capacitor/share';
-import { Filesystem, Directory } from '@capacitor/filesystem';
-
-const AUTO_SAVE_KEY = 'math_auto_save_game';
+const AUTO_SAVE_KEY = 'math_auto_save_state_v2';
 
 interface SavedGameState {
   currentLevel: GradeLevel;
-  currentMode: GameMode;
+  currentMode: OperationMode;
   points: number;
   lives: number;
   streak: number;
@@ -62,42 +33,24 @@ interface SavedGameState {
   chips: Chip[];
 }
 
-interface Chip {
-  id: string;
-  value: string;
-  isDistractor?: boolean;
-  isCarry?: boolean;
-  used?: boolean;
-}
-
-export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('game');
+export const App: React.FC = () => {
   const [currentLevel, setCurrentLevel] = useState<GradeLevel>(3);
-  const [currentMode, setCurrentMode] = useState<GameMode>('add');
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [currentMode, setCurrentMode] = useState<OperationMode>('add');
   const [points, setPoints] = useState<number>(() => parseInt(localStorage.getItem('math_points') || '0', 10));
   const [lives, setLives] = useState(3);
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
   const [currentProblemIndex, setCurrentProblemIndex] = useState(1);
-  const [solvedCount, setSolvedCount] = useState(0);
   const totalProblems = 10;
+  const [solvedCount, setSolvedCount] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
   const [equippedMascot, setEquippedMascot] = useState<string>(() => localStorage.getItem('math_mascot') || '🦉');
   const [equippedAccessory, setEquippedAccessory] = useState<string>(() => localStorage.getItem('math_accessory') || '🎓');
   const [unlockedItems, setUnlockedItems] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('math_unlocked') || '["🦉", "🎓"]'); } catch { return ['🦉', '🎓']; }
+    try { return JSON.parse(localStorage.getItem('math_unlocked') || '["🦉", "🎓"]'); }
+    catch { return ['🦉', '🎓']; }
   });
-  const [playerName, setPlayerName] = useState<string>(() => localStorage.getItem('math_player_name') || 'Explorador Matemático');
-  const [playerTitle, setPlayerTitle] = useState<string>(() => localStorage.getItem('math_player_title') || 'Aventurero del Cálculo');
-  const [playerTheme, setPlayerTheme] = useState<string>(() => localStorage.getItem('math_player_theme') || 'sky');
-  const [playerMotto, setPlayerMotto] = useState<string>(() => localStorage.getItem('math_player_motto') || '¡Las matemáticas son mi superpoder! 🚀');
-
-  const handleUpdateProfile = (name: string, title: string, theme: string, motto: string) => {
-    setPlayerName(name); setPlayerTitle(title); setPlayerTheme(theme); setPlayerMotto(motto);
-    localStorage.setItem('math_player_name', name); localStorage.setItem('math_player_title', title);
-    localStorage.setItem('math_player_theme', theme); localStorage.setItem('math_player_motto', motto);
-    showToast('¡Perfil personalizado con éxito! ✨', 'success');
-  };
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -207,8 +160,15 @@ export default function App() {
     if (selectedChipId) {
       const selectedChip = chips.find((c) => c.id === selectedChipId);
       if (!selectedChip) return;
-      if (currentValue) setChips((prev) => prev.map((c) => (c.used && c.value === currentValue ? { ...c, used: false } : c)));
-      setPlacedDigits((prev) => ({ ...prev, [key]: selectedChip.value }));
+
+      if (row === 'carry' && currentValue && currentValue.length === 1 && selectedChip.value.length === 1) {
+        const combinedVal = currentValue + selectedChip.value;
+        setPlacedDigits((prev) => ({ ...prev, [key]: combinedVal }));
+      } else {
+        if (currentValue) setChips((prev) => prev.map((c) => (c.used && c.value === currentValue ? { ...c, used: false } : c)));
+        setPlacedDigits((prev) => ({ ...prev, [key]: selectedChip.value }));
+      }
+
       setChips((prev) => prev.map((c) => (c.id === selectedChipId ? { ...c, used: true } : c)));
       setSelectedChipId(null); sound.playPop();
     } else if (currentValue) {
@@ -228,8 +188,48 @@ export default function App() {
     sound.playSuccess(); setGamePhase('calculating'); setSelectedChipId(null);
     const result = problem.operation === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2;
     const resDigits = result.toString().split('');
-    const distractors = ['0','1','2','3','4','5','6','7','8','9'].filter((d) => !resDigits.includes(d)).sort(() => Math.random() - 0.5).slice(0, 3);
-    const pool = [...resDigits.map(v => ({ val: v, carry: false })), ...distractors.map(v => ({ val: v, carry: false })), { val: '1', carry: true }].sort(() => Math.random() - 0.5);
+    const distractors = ['0','1','2','3','4','5','6','7','8','9'].filter((d) => !resDigits.includes(d)).sort(() => Math.random() - 0.5).slice(0, 2);
+
+    let minuendLoanChips: string[] = [];
+    if (problem.operation === '-') {
+      const str1 = problem.num1.toString();
+      const str2 = problem.num2.toString();
+      const maxLen = Math.max(str1.length, str2.length);
+      const p1 = str1.padStart(maxLen, '0').split('').map(Number);
+      const p2 = str2.padStart(maxLen, '0').split('').map(Number);
+
+      let borrowedFromMe = false;
+      for (let i = maxLen - 1; i >= 0; i--) {
+        let topDigit = p1[i] - (borrowedFromMe ? 1 : 0);
+        let bottomDigit = p2[i];
+
+        if (topDigit < bottomDigit && i > 0) {
+          minuendLoanChips.push((topDigit + 10).toString());
+          borrowedFromMe = true;
+        } else {
+          borrowedFromMe = false;
+        }
+
+        if (p1[i] !== topDigit && topDigit >= 0) {
+          minuendLoanChips.push(topDigit.toString());
+        }
+      }
+
+      minuendLoanChips.push('10', '11', '12', '13', '14', '15', '16', '17', '18', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+    }
+
+    const rawPool = problem.operation === '-'
+      ? [...resDigits.map(v => ({ val: v, carry: false })), ...distractors.map(v => ({ val: v, carry: false })), ...minuendLoanChips.map(v => ({ val: v, carry: true }))]
+      : [...resDigits.map(v => ({ val: v, carry: false })), ...distractors.map(v => ({ val: v, carry: false })), { val: '1', carry: true }, { val: '1', carry: true }];
+
+    const uniqueVals = new Set<string>();
+    const pool = rawPool.filter(item => {
+      const key = `${item.val}_${item.carry}`;
+      if (uniqueVals.has(key)) return false;
+      uniqueVals.add(key);
+      return true;
+    }).sort(() => Math.random() - 0.5);
+
     setChips(pool.map((item, idx) => ({ id: `chip_calc_${idx}_${item.val}`, value: item.val, isCarry: item.carry, used: false })));
   };
 
@@ -272,118 +272,52 @@ export default function App() {
     showToast(`¡Desbloqueado! 🎉`, 'success');
   };
 
-  // FUNCIÓN DE DESCARGA MAESTRA PARA ANDROID: Sincronizada con el sistema
   const handlePrintWorksheet = async () => {
-    // Calculamos el número de ficha (ciclo del 1 al 50)
     const fichaNum = (printCounter % 50) + 1;
     setPrintCounter(printCounter + 1);
     localStorage.setItem('math_print_counter', (printCounter + 1).toString());
-
-    // NOTA: Tus archivos reales se llaman "ficha2-001.pdf" (minúsculas)
-    const formattedNum = String(fichaNum).padStart(3, '0');
-    const fileName = `ficha${currentLevel}-${formattedNum}.pdf`;
-
-    // Ruta del archivo dentro de la app (Capacitor sirve los archivos de public desde la raíz)
-    const fileUrl = window.location.origin + `/fichas/grado${currentLevel}/${fileName}`;
-
-    showToast(`📂 Procesando ${fileName}...`, 'info');
-
-    try {
-      // 1. Descargamos el archivo a la memoria de la aplicación
-      const response = await fetch(fileUrl);
-      if (!response.ok) throw new Error(`No encontré el archivo en: public/fichas/grado${currentLevel}/`);
-
-      const blob = await response.blob();
-
-      // 2. Convertimos a Base64 para que Capacitor pueda escribirlo nativamente
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = () => reject(new Error('Error al procesar el archivo.'));
-        reader.readAsDataURL(blob);
-      });
-      const base64Data = await base64Promise;
-
-      // 3. Escribimos el archivo en el sistema de archivos del celular (Carpeta Temporal)
-      const savedFile = await Filesystem.writeFile({
-        path: fileName,
-        data: base64Data,
-        directory: Directory.Cache
-      });
-
-      // 4. Usamos el menú Compartir nativo de Android.
-      // IMPORTANTE: Pasamos el archivo REAL (savedFile.uri) para activar la descarga del sistema.
-      await Share.share({
-        title: `Descargar Ficha N° ${formattedNum}`,
-        files: [savedFile.uri], // Enviamos el archivo físico
-      });
-
-      showToast(`✅ ¡Listo! Selecciona 'Guardar' para ver la notificación.`, 'success');
-    } catch (err: any) {
-      console.error('Error en descarga:', err);
-      showToast(`❌ Error: ${err.message}`, 'error');
-    }
+    const fileName = `ficha${currentLevel}-${String(fichaNum).padStart(3, '0')}.pdf`;
+    setIsWorksheetShareOpen(true);
+    showToast(`¡Ficha ${fileName} generada con éxito! 📄`, 'success');
   };
 
-  const handleAwardPointsFromQr = (amount: number) => {
-    setPoints((prev) => prev + amount);
-    showToast(`¡Ficha calificada! +${amount} ⭐🎉`, 'success');
+  const handleQrScanned = (scannedData: any) => {
+    setIsQrScannerOpen(false); sound.playSuccess();
+    setPoints((prev) => prev + 300); showToast(`¡Ficha ${scannedData.sheetId || ''} calificada! +300 ⭐`, 'success');
   };
-
-  const isPlacingComplete = gamePhase === 'placing' && chips.length > 0 && chips.every(c => c.used);
-  const isCalculatingComplete = gamePhase === 'calculating' && problem && problem.activeCols.some((col) => placedDigits[`result_${col}`]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-indigo-50/70 to-pink-100/60 text-slate-800 font-sans">
-      <div className="no-print min-h-screen flex flex-col items-center justify-start p-2 sm:p-4 pb-20">
-        <div className="w-full max-w-2xl clay-card p-4 shadow-xl border-4 border-white my-auto">
-          {activeTab === 'game' && problem && (
-            <>
-              <Header mascot={equippedMascot} accessory={equippedAccessory} lives={lives} streak={streak} soundEnabled={soundEnabled} playerName={playerName}
-                onOpenSettings={() => setIsOptionsOpen(true)} onOpenStore={() => setActiveTab('store')} onOpenQrScanner={() => setIsQrScannerOpen(true)} />
-              <main className="mt-4 space-y-4">
-                <StoryCard problem={problem} currentProblemIndex={currentProblemIndex} gradeLabel={LEVEL_CONFIGS[currentLevel].label} gamePhase={gamePhase} />
-                <DigitsBank chips={chips} selectedChipId={selectedChipId} onSelectChip={(id) => setSelectedChipId(id === selectedChipId ? null : id)} gamePhase={gamePhase} />
-                <PositionalBoard num1={problem.num1} num2={problem.num2} operation={problem.operation} activeCols={problem.activeCols} gamePhase={gamePhase} placedDigits={placedDigits}
-                  selectedDigit={selectedChipId ? chips.find((c) => c.id === selectedChipId)?.value || null : null} onCellClick={handleCellClick} incorrectResultCols={incorrectResultCols} />
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                  <button onClick={() => { sound.playSelect(); generateProblem(); }} className="clay-btn-white px-4 py-3 font-black text-xs flex items-center gap-1.5"><RotateCcw className="w-4 h-4 text-slate-500" /><span>Reiniciar</span></button>
-                  {gamePhase === 'placing' && <button onClick={handleCalculatePhase} disabled={!isPlacingComplete} className={`px-5 py-3 font-black text-xs flex items-center gap-1.5 ${isPlacingComplete ? 'clay-btn-sky' : 'bg-slate-100 text-slate-400 opacity-60 rounded-2xl'}`}><Calculator className="w-4 h-4" /><span>¡Validar!</span></button>}
-                  {gamePhase === 'calculating' && <button onClick={handleCheckFinalAnswer} disabled={!isCalculatingComplete} className={`px-5 py-3 font-black text-xs flex items-center gap-1.5 ${isCalculatingComplete ? 'clay-btn-emerald' : 'bg-slate-100 text-slate-400 opacity-60 rounded-2xl'}`}><CheckCircle className="w-4 h-4" /><span>Comprobar</span></button>}
-                  {gamePhase === 'complete' && <button onClick={handleNextProblem} className="clay-btn-amber px-6 py-3 font-black text-xs flex items-center gap-1.5 animate-bounce"><span>Siguiente</span><ArrowRight className="w-4 h-4" /></button>}
-                  <button onClick={handleProvideHint} className="clay-btn-purple px-4 py-3 font-black text-xs flex items-center gap-1.5"><Lightbulb className="w-4 h-4 text-amber-300" /><span>Ayuda</span></button>
-                </div>
-              </main>
-            </>
-          )}
-          {activeTab === 'levels' && (
-            <div className="mt-4 clay-card p-5 space-y-4 text-slate-800 text-center">
-              <h2 className="font-black text-sky-900 border-b-2 pb-2">Configuración</h2>
-              <div className="grid grid-cols-3 gap-2">
-                {(['add', 'sub', 'mix'] as GameMode[]).map((m) => (
-                  <button key={m} onClick={() => { sound.playSelect(); setCurrentMode(m); setActiveTab('game'); }} className={`py-3 rounded-2xl font-black text-xs ${currentMode === m ? 'clay-btn-sky' : 'clay-btn-white'}`}>{m === 'add' ? '➕ Suma' : m === 'sub' ? '➖ Resta' : '🔀 Mixto'}</button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {([2, 3, 4, 5] as GradeLevel[]).map((lvl) => (
-                  <button key={lvl} onClick={() => { sound.playSelect(); setCurrentLevel(lvl); setActiveTab('game'); }} className={`p-3 rounded-2xl ${currentLevel === lvl ? 'clay-card-sky border-2 border-sky-400' : 'clay-btn-white'}`}><div className="font-black text-sm">{lvl}° Grado</div></button>
-                ))}
-              </div>
-            </div>
-          )}
-          {activeTab === 'profile' && <div className="mt-4"><ProfileDashboard playerName={playerName} playerTitle={playerTitle} playerTheme={playerTheme} playerMotto={playerMotto} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} points={points} streak={streak} maxStreak={maxStreak} solvedCount={solvedCount} timerSeconds={timerSeconds} currentLevel={currentLevel} currentMode={currentMode} onUpdateProfile={handleUpdateProfile} onEquipMascot={setEquippedMascot} onEquipAccessory={setEquippedAccessory} onOpenStore={() => setActiveTab('store')} onOpenReport={() => setActiveTab('report')} onStartGame={() => setActiveTab('game')} onChangeLevelTab={() => setActiveTab('levels')} /></div>}
-          {activeTab === 'store' && <div className="mt-4"><StoreView points={points} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} onEquipItem={handleEquipItem} onUnlockItem={handleUnlockItem} /></div>}
-          {activeTab === 'report' && <div className="mt-4"><TeacherReportView stats={{ solvedCount, accuracy: currentProblemIndex > 0 ? Math.round((solvedCount / currentProblemIndex) * 100) : 100, maxStreak, points }} onResetStats={() => { setPoints(0); setSolvedCount(0); setStreak(0); setMaxStreak(0); showToast('Estadísticas de la sesión reiniciadas 🧹', 'info'); }} onPrintWorksheet={handlePrintWorksheet} onOpenQrScanner={() => setIsQrScannerOpen(true)} /></div>}
+    <div className="min-h-screen bg-gradient-to-b from-sky-100 via-sky-50 to-indigo-50 text-slate-900 pb-20 flex flex-col items-center">
+      <Header points={points} lives={lives} streak={streak} timerSeconds={timerSeconds} currentProblem={currentProblemIndex} totalProblems={totalProblems} mascot={equippedMascot} accessory={equippedAccessory} onOpenOptions={() => setIsOptionsOpen(true)} onOpenStore={() => setIsStoreOpen(true)} onOpenTeacherReport={() => setIsTeacherReportOpen(true)} onOpenQrScanner={() => setIsQrScannerOpen(true)} soundEnabled={soundEnabled} onToggleSound={handleToggleSound} />
+      <main className="w-full max-w-lg px-3 sm:px-4 mt-2 font-comic space-y-3 flex-1">
+        {toastMessage && (
+          <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-xl font-black text-sm text-white transition-all animate-bounce ${toastMessage.type === 'error' ? 'bg-rose-500' : toastMessage.type === 'success' ? 'bg-emerald-500' : 'bg-sky-500'}`}>
+            {toastMessage.text}
+          </div>
+        )}
+        {problem && <StoryCard icon={problem.story.icon} storyText={problem.story.text} questionText={problem.story.question} currentLevel={currentLevel} currentProblemIndex={currentProblemIndex} totalProblems={totalProblems} />}
+        {problem && <DigitsBank chips={chips} selectedChipId={selectedChipId} onSelectChip={setSelectedChipId} gamePhase={gamePhase} />}
+        {problem && <PositionalBoard num1={problem.num1} num2={problem.num2} operation={problem.operation} activeCols={problem.activeCols} gamePhase={gamePhase} placedDigits={placedDigits} selectedDigit={selectedChipId ? chips.find((c) => c.id === selectedChipId)?.value || null : null} onCellClick={handleCellClick} incorrectResultCols={incorrectResultCols} />}
+        <div className="flex items-center justify-between gap-2 py-1">
+          <button onClick={resetProblem} className="clay-btn bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-black py-2.5 px-3 rounded-2xl">🔄 Reiniciar</button>
+          {gamePhase === 'placing' && <button onClick={handleCalculatePhase} className="clay-btn bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white text-xs sm:text-sm font-black py-2.5 px-4 rounded-2xl shadow-md">🧮 ¡Calcular!</button>}
+          {gamePhase === 'calculating' && <button onClick={handleCheckFinalAnswer} className="clay-btn bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs sm:text-sm font-black py-2.5 px-4 rounded-2xl shadow-md">✅ Comprobar</button>}
+          {gamePhase === 'complete' && <button onClick={handleNextProblem} className="clay-btn bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-xs sm:text-sm font-black py-2.5 px-4 rounded-2xl shadow-md animate-pulse">➡️ Siguiente</button>}
+          <button onClick={handleProvideHint} className="clay-btn bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs sm:text-sm font-black py-2.5 px-3 rounded-2xl">💡 Ayuda</button>
         </div>
-        <BottomNav activeTab={activeTab} onChangeTab={setActiveTab} />
-        {toastMessage && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl shadow-xl font-black text-xs border-2 animate-bounce ${toastMessage.type === 'success' ? 'bg-emerald-500 border-emerald-400 text-white' : toastMessage.type === 'error' ? 'bg-rose-500 border-rose-400 text-white' : 'bg-sky-600 border-sky-400 text-white'}`}>{toastMessage.text}</div>}
-        <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onAwardPoints={handleAwardPointsFromQr} />
-        <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} soundEnabled={soundEnabled} onToggleSound={handleToggleSound} currentLevel={currentLevel} currentMode={currentMode} onChangeLevelTab={() => setActiveTab('levels')} onOpenWelcome={() => setIsWelcomeOpen(true)} onResetStats={() => { setPoints(0); setSolvedCount(0); showToast('🧹 Reiniciado', 'info'); }} />
-        <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={setCurrentLevel} onStartGame={() => setIsWelcomeOpen(false)} hasSavedGame={Boolean(localStorage.getItem(AUTO_SAVE_KEY))} />
-        <VictoryModal isOpen={isVictoryOpen} onClose={() => { setIsVictoryOpen(false); resetGameProgress(); }} onGoToStore={() => { setIsVictoryOpen(false); setActiveTab('store'); }} timerSeconds={timerSeconds} bestTimeSeconds={bestTime} isNewRecord={isNewRecord} earnedStars={500} />
-        <TeacherReportModal isOpen={isTeacherReportOpen} onClose={() => setIsTeacherReportOpen(false)} stats={{ solvedCount, maxStreak, accuracy: solvedCount > 0 ? 100 : 100, points, timeSpentSec: timerSeconds }} onResetStats={() => { setPoints(0); setSolvedCount(0); showToast('🧹 Reiniciado', 'info'); }} onPrintWorksheet={() => { setIsTeacherReportOpen(false); setIsWorksheetShareOpen(true); }} onOpenQrScanner={() => { setIsTeacherReportOpen(false); setIsQrScannerOpen(true); }} />
-        <WorksheetShareModal isOpen={isWorksheetShareOpen} onClose={() => setIsWorksheetShareOpen(false)} gradeLevel={currentLevel} currentMode={currentMode} printCounter={printCounter} onPrint={handlePrintWorksheet} />
-      </div>
+      </main>
+
+      <BottomNav activeTab="game" onTabChange={(tab) => { if (tab === 'options') setIsOptionsOpen(true); if (tab === 'store') setIsStoreOpen(true); if (tab === 'report') setIsTeacherReportOpen(true); }} />
+
+      <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} onSelectLevel={(lvl) => { setCurrentLevel(lvl); setIsWelcomeOpen(false); }} />
+      <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={(lvl) => { setCurrentLevel(lvl); setIsOptionsOpen(false); }} onChangeMode={(mode) => { setCurrentMode(mode); setIsOptionsOpen(false); }} />
+      <StoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} points={points} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} onEquipItem={handleEquipItem} onUnlockItem={handleUnlockItem} />
+      <TeacherReportModal isOpen={isTeacherReportOpen} onClose={() => setIsTeacherReportOpen(false)} solvedCount={solvedCount} lives={lives} streak={streak} points={points} currentLevel={currentLevel} currentMode={currentMode} onPrintWorksheet={handlePrintWorksheet} />
+      <VictoryModal isOpen={isVictoryOpen} onClose={() => setIsVictoryOpen(false)} timeSeconds={timerSeconds} bestTime={bestTime} isNewRecord={isNewRecord} pointsEarned={500} onPlayAgain={resetGameProgress} />
+      <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onScanned={handleQrScanned} />
+      {problem && <WorksheetShareModal isOpen={isWorksheetShareOpen} onClose={() => setIsWorksheetShareOpen(false)} currentLevel={currentLevel} currentMode={currentMode} printCounter={printCounter} />}
     </div>
   );
-}
+};
+
+export default App;
