@@ -1,9 +1,18 @@
 export type GameMode = 'add' | 'sub' | 'mix';
+export type OperationMode = GameMode;
 export type GradeLevel = 2 | 3 | 4 | 5;
 
 export type PositionalCol = 'cm' | 'dm' | 'um' | 'c' | 'd' | 'u';
 
 export type GamePhase = 'placing' | 'calculating' | 'complete';
+
+export interface Chip {
+  id: string;
+  value: string;
+  isDistractor?: boolean;
+  isCarry?: boolean;
+  used?: boolean;
+}
 
 export interface LevelConfig {
   cols: PositionalCol[];
