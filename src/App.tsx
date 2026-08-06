@@ -269,7 +269,7 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      <BottomNav activeTab="game" onTabChange={(tab) => { if (tab === 'options') setIsOptionsOpen(true); if (tab === 'store') setIsStoreOpen(true); if (tab === 'report') setIsTeacherReportOpen(true); }} />
+      <BottomNav activeTab="game" onChangeTab={(tab) => { if (tab === 'levels') setIsOptionsOpen(true); if (tab === 'store') setIsStoreOpen(true); if (tab === 'report') setIsTeacherReportOpen(true); if (tab === 'profile') setIsWelcomeOpen(true); }} />
 
       <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} onUpdatePlayerName={setPlayerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={(l) => { setCurrentLevel(l); generateProblem(l); }} onStartGame={resetGameProgress} />
       <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={(l) => { setCurrentLevel(l); generateProblem(l, currentMode); }} onChangeMode={(m) => { setCurrentMode(m); generateProblem(currentLevel, m); }} />
