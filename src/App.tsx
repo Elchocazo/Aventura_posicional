@@ -18,44 +18,6 @@ import { sound } from './utils/sound';
 
 const AUTO_SAVE_KEY = 'math_auto_save_state_v2';
 
-interface SavedGameState {
-  currentLevel: GradeLevel;
-  currentMode: OperationMode;
-  points: number;
-  lives: number;
-  streak: number;
-  maxStreak: number;
-  currentProblemIndex: number;
-  solvedCount: number;
-  timerSeconds: number;
-  problem: ProblemData;
-  gamePhase: GamePhase;
-  placedDigits: Record<string, string>;
-  chips: Chip[];
-}
-
-function buildProblemObject(level: GradeLevel, mode: OperationMode): { problem: ProblemData; chips: Chip[] } {
-  const config = LEVEL_CONFIGS[level] || LEVEL_CONFIGS[3];
-  let op = mode;
-  if (op === 'mix') op = Math.random() > 0.5 ? 'add' : 'sub';
-  const raw1 = Math.floor(Math.random() * (config.max1 - config.min1 + 1)) + config.min1;
-  const raw2 = Math.floor(Math.random() * (config.max2 - config.min2 + 1)) + config.min2;
-  let num1 = raw1, num2 = raw2, operationSym: '+' | '-' = '+';
-  if (op === 'sub') { operationSym = '-'; num1 = Math.max(raw1, raw2); num2 = Math.min(raw1, raw2); }
-  else { operationSym = '+'; num1 = raw1; num2 = raw2; }
-  const result = operationSym === '+' ? num1 + num2 : num1 - num2;
-  const maxDigits = Math.max(num1.toString().length, num2.toString().length, result.toString().length);
-  const activeCols = ALL_COLUMNS.slice(ALL_COLUMNS.length - maxDigits);
-  const theme = STORY_THEMES[Math.floor(Math.random() * STORY_THEMES.length)];
-  const storyText = operationSym === '+' ? theme.addStory(num1.toLocaleString(), num2.toLocaleString()) : theme.subStory(num1.toLocaleString(), num2.toLocaleString());
-  const questionText = operationSym === '+' ? theme.addQuestion : theme.subQuestion;
-  const p: ProblemData = { num1, num2, operation: operationSym, activeCols, story: { icon: theme.icon, text: storyText, question: questionText } };
-  const d1 = num1.toString().split(''), d2 = num2.toString().split('');
-  const all = [...d1, ...d2].sort(() => Math.random() - 0.5);
-  const c: Chip[] = all.map((val, idx) => ({ id: `chip_place_${idx}_${val}`, value: val, used: false }));
-  return { problem: p, chips: c };
-}
-
 export const App: React.FC = () => {
   const [currentLevel, setCurrentLevel] = useState<GradeLevel>(3);
   const [currentMode, setCurrentMode] = useState<OperationMode>('add');
@@ -66,13 +28,8 @@ export const App: React.FC = () => {
   const [currentProblemIndex, setCurrentProblemIndex] = useState(1);
   const totalProblems = 10;
   const [solvedCount, setSolvedCount] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const [equippedMascot, setEquippedMascot] = useState<string>(() => {
-    const saved = localStorage.getItem('math_mascot');
-    if (!saved || saved === '🦄') return '🐶';
-    return saved;
-  });
+  const [equippedMascot, setEquippedMascot] = useState<string>(() => localStorage.getItem('math_mascot') || '🐶');
   const [equippedAccessory, setEquippedAccessory] = useState<string>(() => localStorage.getItem('math_accessory') || '🎓');
   const [unlockedItems, setUnlockedItems] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('math_unlocked') || '["🐶", "🎓"]'); }
@@ -80,7 +37,6 @@ export const App: React.FC = () => {
   });
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('math_player_name') || 'Explorador');
-  const [playerTitle, setPlayerTitle] = useState(() => localStorage.getItem('math_player_title') || 'Aventurero del Cálculo');
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -94,288 +50,233 @@ export const App: React.FC = () => {
   const [isWorksheetShareOpen, setIsWorksheetShareOpen] = useState(false);
   const [printCounter, setPrintCounter] = useState<number>(() => parseInt(localStorage.getItem('math_print_counter') || '1', 10));
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' | 'error' } | null>(null);
-  
-  // Synchronous initial problem state
-  const initialObj = useRef(buildProblemObject(3, 'add'));
-  const [problem, setProblem] = useState<ProblemData | null>(initialObj.current.problem);
+
+  const [problem, setProblem] = useState<ProblemData | null>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>('placing');
   const [placedDigits, setPlacedDigits] = useState<Record<string, string>>({});
-  const [chips, setChips] = useState<Chip[]>(initialObj.current.chips);
+  const [chips, setChips] = useState<Chip[]>([]);
   const [selectedChipId, setSelectedChipId] = useState<string | null>(null);
   const [incorrectResultCols, setIncorrectResultCols] = useState<PositionalCol[]>([]);
 
-  const showToast = (text: string, type: 'info' | 'success' | 'error' = 'info') => {
+  const showToast = useCallback((text: string, type: 'info' | 'success' | 'error' = 'info') => {
     setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 4000);
-  };
-
-  const handleToggleSound = () => {
-    const next = !soundEnabled;
-    setSoundEnabled(next);
-    sound.enabled = next;
-  };
-
-  const startTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setTimerSeconds((prev) => prev + 1), 1000);
+    setTimeout(() => setToastMessage(null), 3500);
   }, []);
 
   const stopTimer = useCallback(() => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } }, []);
-  const resetTimer = useCallback(() => { stopTimer(); setTimerSeconds(0); startTimer(); }, [startTimer, stopTimer]);
+  const startTimer = useCallback(() => {
+    stopTimer();
+    timerRef.current = setInterval(() => setTimerSeconds((prev) => prev + 1), 1000);
+  }, [stopTimer]);
 
-  useEffect(() => {
-    localStorage.setItem('math_points', points.toString());
-    localStorage.setItem('math_mascot', equippedMascot);
-    localStorage.setItem('math_accessory', equippedAccessory);
-    localStorage.setItem('math_unlocked', JSON.stringify(unlockedItems));
-    localStorage.setItem('math_player_name', playerName);
-  }, [points, equippedMascot, equippedAccessory, unlockedItems, playerName]);
+  const generateProblem = useCallback((levelOverride?: GradeLevel, modeOverride?: OperationMode) => {
+    const level = levelOverride || currentLevel;
+    const mode = modeOverride || currentMode;
+    const config = LEVEL_CONFIGS[level] || LEVEL_CONFIGS[3];
 
-  const generateProblem = useCallback(() => {
-    const obj = buildProblemObject(currentLevel, currentMode);
-    setProblem(obj.problem);
-    setGamePhase('placing'); setPlacedDigits({}); setIncorrectResultCols([]); setSelectedChipId(null);
-    setChips(obj.chips);
+    let op = mode;
+    if (op === 'mix') op = Math.random() > 0.5 ? 'add' : 'sub';
+
+    const n1raw = Math.floor(Math.random() * (config.max1 - config.min1 + 1)) + config.min1;
+    const n2raw = Math.floor(Math.random() * (config.max2 - config.min2 + 1)) + config.min2;
+
+    let n1 = n1raw, n2 = n2raw, symbol: '+' | '-' = '+';
+    if (op === 'sub') {
+      symbol = '-';
+      n1 = Math.max(n1raw, n2raw);
+      n2 = Math.min(n1raw, n2raw);
+    } else {
+      symbol = '+';
+      n1 = n1raw;
+      n2 = n2raw;
+    }
+
+    const result = symbol === '+' ? n1 + n2 : n1 - n2;
+    const maxDigits = Math.max(n1.toString().length, n2.toString().length, result.toString().length);
+    const activeCols = ALL_COLUMNS.slice(ALL_COLUMNS.length - maxDigits);
+    const theme = STORY_THEMES[Math.floor(Math.random() * STORY_THEMES.length)];
+
+    const storyText = symbol === '+' ? theme.addStory(n1.toLocaleString(), n2.toLocaleString()) : theme.subStory(n1.toLocaleString(), n2.toLocaleString());
+
+    setProblem({
+      num1: n1, num2: n2, operation: symbol, activeCols,
+      story: { icon: theme.icon, text: storyText, question: symbol === '+' ? theme.addQuestion : theme.subQuestion }
+    });
+    setGamePhase('placing');
+    setPlacedDigits({});
+    setChips([...n1.toString(), ...n2.toString()].sort(() => Math.random() - 0.5).map((v, i) => ({ id: `c${i}`, value: v, used: false })));
+    setSelectedChipId(null);
   }, [currentLevel, currentMode]);
 
   const resetGameProgress = useCallback(() => {
     setCurrentProblemIndex(1);
     setLives(3);
     setStreak(0);
-    resetTimer();
+    setTimerSeconds(0);
+    startTimer();
     generateProblem();
-  }, [generateProblem, resetTimer]);
+  }, [generateProblem, startTimer]);
 
-  const isInitialMountRef = useRef(true);
-  const prevConfigRef = useRef({ level: currentLevel, mode: currentMode });
-
+  const initialized = useRef(false);
   useEffect(() => {
-    try {
-      const savedStr = localStorage.getItem(AUTO_SAVE_KEY);
-      if (savedStr) {
-        const saved: SavedGameState = JSON.parse(savedStr);
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const savedStr = localStorage.getItem(AUTO_SAVE_KEY);
+    if (savedStr) {
+      try {
+        const saved = JSON.parse(savedStr);
         if (saved && saved.problem) {
-          setCurrentLevel(saved.currentLevel); setCurrentMode(saved.currentMode); setPoints(saved.points);
-          setLives(saved.lives); setStreak(saved.streak); setMaxStreak(saved.maxStreak);
-          setCurrentProblemIndex(saved.currentProblemIndex); setSolvedCount(saved.solvedCount); setTimerSeconds(saved.timerSeconds);
-          setProblem(saved.problem); setGamePhase(saved.gamePhase); setPlacedDigits(saved.placedDigits); setChips(saved.chips);
-          startTimer(); return;
+          setCurrentLevel(saved.currentLevel);
+          setCurrentMode(saved.currentMode);
+          setPoints(saved.points);
+          setLives(saved.lives);
+          setStreak(saved.streak);
+          setMaxStreak(saved.maxStreak);
+          setCurrentProblemIndex(saved.currentProblemIndex);
+          setSolvedCount(saved.solvedCount);
+          setTimerSeconds(saved.timerSeconds);
+          setProblem(saved.problem);
+          setGamePhase(saved.gamePhase);
+          setPlacedDigits(saved.placedDigits);
+          setChips(saved.chips);
+          startTimer();
+          return;
         }
-      }
-    } catch (e) {}
+      } catch (e) { console.error("Error loading save", e); }
+    }
     resetGameProgress();
     return () => stopTimer();
-  }, [resetGameProgress, startTimer]);
+  }, [resetGameProgress, startTimer, stopTimer]);
 
   useEffect(() => {
-    if (isInitialMountRef.current) { isInitialMountRef.current = false; return; }
-    if (prevConfigRef.current.level !== currentLevel || prevConfigRef.current.mode !== currentMode) {
-      prevConfigRef.current = { level: currentLevel, mode: currentMode }; resetGameProgress();
-    }
-  }, [currentLevel, currentMode, resetGameProgress]);
-
-  useEffect(() => {
-    if (!problem) return;
-    const stateToSave = { currentLevel, currentMode, points, lives, streak, maxStreak, currentProblemIndex, solvedCount, timerSeconds, problem, gamePhase, placedDigits, chips };
-    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(stateToSave));
-  }, [currentLevel, currentMode, points, lives, streak, maxStreak, currentProblemIndex, solvedCount, timerSeconds, problem, gamePhase, placedDigits, chips]);
+    if (!problem || showSplash) return;
+    const state = { currentLevel, currentMode, points, lives, streak, maxStreak, currentProblemIndex, solvedCount, timerSeconds, problem, gamePhase, placedDigits, chips };
+    localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(state));
+    localStorage.setItem('math_points', points.toString());
+    localStorage.setItem('math_player_name', playerName);
+    localStorage.setItem('math_mascot', equippedMascot);
+    localStorage.setItem('math_accessory', equippedAccessory);
+  }, [currentLevel, currentMode, points, lives, streak, maxStreak, currentProblemIndex, solvedCount, timerSeconds, problem, gamePhase, placedDigits, chips, showSplash, playerName, equippedMascot, equippedAccessory]);
 
   const handleFinishSplash = useCallback(() => {
     setShowSplash(false);
-    setIsWelcomeOpen(true);
-    if (!problem) {
-      resetGameProgress();
-    }
-  }, [problem, resetGameProgress]);
+    if (playerName === 'Explorador') setIsWelcomeOpen(true);
+    sound.playSuccess();
+  }, [playerName]);
 
   const handleCellClick = (row: string, col: PositionalCol) => {
-    const key = `${row}_${col}`, currentValue = placedDigits[key];
+    const key = `${row}_${col}`;
+    const currentValue = placedDigits[key];
     if (selectedChipId) {
-      const selectedChip = chips.find((c) => c.id === selectedChipId);
-      if (!selectedChip) return;
-
-      if (row === 'carry' && currentValue && currentValue.length === 1 && selectedChip.value.length === 1) {
-        const combinedVal = currentValue + selectedChip.value;
-        setPlacedDigits((prev) => ({ ...prev, [key]: combinedVal }));
+      const chip = chips.find(c => c.id === selectedChipId);
+      if (!chip) return;
+      if (row === 'carry' && currentValue && currentValue.length === 1) {
+        setPlacedDigits(prev => ({ ...prev, [key]: currentValue + chip.value }));
       } else {
-        if (currentValue) setChips((prev) => prev.map((c) => (c.used && c.value === currentValue ? { ...c, used: false } : c)));
-        setPlacedDigits((prev) => ({ ...prev, [key]: selectedChip.value }));
+        if (currentValue) setChips(prev => prev.map(c => c.value === currentValue.slice(-1) && c.used ? { ...c, used: false } : c));
+        setPlacedDigits(prev => ({ ...prev, [key]: chip.value }));
       }
-
-      setChips((prev) => prev.map((c) => (c.id === selectedChipId ? { ...c, used: true } : c)));
-      setSelectedChipId(null); sound.playPop();
+      setChips(prev => prev.map(c => c.id === selectedChipId ? { ...c, used: true } : c));
+      setSelectedChipId(null);
+      sound.playPop();
     } else if (currentValue) {
-      setPlacedDigits((prev) => { const next = { ...prev }; delete next[key]; return next; });
-      setChips((prev) => { let restored = false; return prev.map((c) => { if (!restored && c.used && c.value === currentValue) { restored = true; return { ...c, used: false }; } return c; }); });
+      setPlacedDigits(prev => { const n = { ...prev }; delete n[key]; return n; });
+      setChips(prev => {
+        let restored = false;
+        return prev.map(c => {
+          if (!restored && c.used && c.value === currentValue.slice(-1)) { restored = true; return { ...c, used: false }; }
+          return c;
+        });
+      });
       sound.playSelect();
     }
   };
 
-  const handleCalculatePhase = () => {
+  const handleCheckResult = () => {
     if (!problem) return;
-    let r1 = '', r2 = '';
-    problem.activeCols.forEach((col) => { r1 += placedDigits[`num1_${col}`] || ''; r2 += placedDigits[`num2_${col}`] || ''; });
-    const v1 = parseInt(r1, 10) || 0, v2 = parseInt(r2, 10) || 0;
-    const isValid = (v1 === problem.num1 && v2 === problem.num2) || (problem.operation === '+' && v1 === problem.num2 && v2 === problem.num1);
-    if (!isValid) { sound.playError(); showToast('¡Revisa los números! La "U" va a la derecha. 🔍', 'error'); return; }
-    sound.playSuccess(); setGamePhase('calculating'); setSelectedChipId(null);
-    const result = problem.operation === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2;
-    const resDigits = result.toString().split('');
-    const distractors = ['0','1','2','3','4','5','6','7','8','9'].filter((d) => !resDigits.includes(d)).sort(() => Math.random() - 0.5).slice(0, 2);
-
-    let minuendLoanChips: string[] = [];
-    if (problem.operation === '-') {
-      const str1 = problem.num1.toString();
-      const str2 = problem.num2.toString();
-      const maxLen = Math.max(str1.length, str2.length);
-      const p1 = str1.padStart(maxLen, '0').split('').map(Number);
-      const p2 = str2.padStart(maxLen, '0').split('').map(Number);
-
-      let borrowedFromMe = false;
-      for (let i = maxLen - 1; i >= 0; i--) {
-        let topDigit = p1[i] - (borrowedFromMe ? 1 : 0);
-        let bottomDigit = p2[i];
-
-        if (topDigit < bottomDigit && i > 0) {
-          minuendLoanChips.push((topDigit + 10).toString());
-          borrowedFromMe = true;
-        } else {
-          borrowedFromMe = false;
-        }
-
-        if (p1[i] !== topDigit && topDigit >= 0) {
-          minuendLoanChips.push(topDigit.toString());
-        }
-      }
-
-      minuendLoanChips.push('10', '11', '12', '13', '14', '15', '16', '17', '18', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
-    }
-
-    const rawPool = problem.operation === '-'
-      ? [...resDigits.map(v => ({ val: v, carry: false })), ...distractors.map(v => ({ val: v, carry: false })), ...minuendLoanChips.map(v => ({ val: v, carry: true }))]
-      : [...resDigits.map(v => ({ val: v, carry: false })), ...distractors.map(v => ({ val: v, carry: false })), { val: '1', carry: true }, { val: '1', carry: true }];
-
-    const uniqueVals = new Set<string>();
-    const pool = rawPool.filter(item => {
-      const key = `${item.val}_${item.carry}`;
-      if (uniqueVals.has(key)) return false;
-      uniqueVals.add(key);
-      return true;
-    }).sort(() => Math.random() - 0.5);
-
-    setChips(pool.map((item, idx) => ({ id: `chip_calc_${idx}_${item.val}`, value: item.val, isCarry: item.carry, used: false })));
-  };
-
-  const handleCheckFinalAnswer = () => {
-    if (!problem) return;
-    let res = ''; problem.activeCols.forEach((col) => res += placedDigits[`result_${col}`] || '0');
-    const userRes = parseInt(res, 10) || 0, expected = problem.operation === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2;
-    if (userRes === expected) {
-      setGamePhase('complete'); sound.playSuccess();
-      const bonus = 100 + streak * 20; setPoints((prev) => prev + bonus); setStreak((prev) => prev + 1); setSolvedCount((prev) => prev + 1);
-      showToast(`¡EXTRAORDINARIO! +${bonus} ⭐`, 'success');
+    let resStr = '';
+    problem.activeCols.forEach(col => resStr += placedDigits[`result_${col}`] || '0');
+    const userResult = parseInt(resStr, 10) || 0;
+    const expected = problem.operation === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2;
+    if (userResult === expected) {
+      sound.playSuccess();
+      setGamePhase('complete');
+      const winPoints = 100 + (streak * 20);
+      setPoints(p => p + winPoints);
+      setStreak(s => s + 1);
+      setSolvedCount(s => s + 1);
+      showToast(`¡Excelente! +${winPoints} ⭐`, 'success');
     } else {
-      sound.playError(); setIncorrectResultCols(problem.activeCols); setTimeout(() => setIncorrectResultCols([]), 1500);
-      setLives((prev) => prev - 1); setStreak(0);
-      if (lives <= 1) { showToast('¡Vuelve a intentar! 💪', 'error'); setTimeout(() => resetGameProgress(), 2500); }
-      else showToast('¡Revisa el cálculo! ❤️', 'error');
+      sound.playError();
+      setIncorrectResultCols(problem.activeCols);
+      setTimeout(() => setIncorrectResultCols([]), 1500);
+      setLives(l => {
+        const next = Math.max(0, l - 1);
+        if (next === 0) { showToast("¡Vuelve a empezar! 💪", "error"); setTimeout(resetGameProgress, 2000); }
+        else { showToast("¡Revisa el cálculo! ❤️", "error"); }
+        return next;
+      });
+      setStreak(0);
     }
-  };
-
-  const handleNextProblem = () => {
-    if (currentProblemIndex >= totalProblems) {
-      stopTimer(); setIsVictoryOpen(true); setPoints((prev) => prev + 500);
-    } else { setCurrentProblemIndex((prev) => prev + 1); generateProblem(); }
-  };
-
-  const handleProvideHint = () => {
-    sound.playPop(); if (!problem) return;
-    const msg = gamePhase === 'placing' ? `Acomoda ${problem.num1} y ${problem.num2}` : `Resultado: ${problem.operation === '+' ? problem.num1 + problem.num2 : problem.num1 - problem.num2}`;
-    showToast(`💡 Pista: ${msg}`, 'info');
-  };
-
-  const handleEquipItem = (item: StoreItem) => {
-    if (item.category === 'mascot') setEquippedMascot(item.id); else setEquippedAccessory(item.id);
-    showToast(`¡Equipado! ✨`, 'success');
-  };
-
-  const handleUnlockItem = (item: StoreItem) => {
-    setPoints((prev) => prev - item.cost); setUnlockedItems((prev) => [...prev, item.id]);
-    if (item.category === 'mascot') setEquippedMascot(item.id); else setEquippedAccessory(item.id);
-    showToast(`¡Desbloqueado! 🎉`, 'success');
-  };
-
-  const handlePrintWorksheet = async () => {
-    const fichaNum = (printCounter % 50) + 1;
-    setPrintCounter(printCounter + 1);
-    localStorage.setItem('math_print_counter', (printCounter + 1).toString());
-    setIsWorksheetShareOpen(true);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-100 via-sky-50 to-indigo-50 text-slate-900 pb-20 flex flex-col items-center w-full overflow-x-hidden">
-      {/* 1. SPLASH SCREEN OVERLAY ON APP LAUNCH */}
+    <div className="min-h-screen bg-sky-50 text-slate-900 pb-24 flex flex-col items-center w-full overflow-x-hidden">
       {showSplash && <SplashScreenOverlay onFinish={handleFinishSplash} />}
 
       <Header
-        points={points}
-        lives={lives}
-        streak={streak}
-        mascot={equippedMascot}
-        accessory={equippedAccessory}
-        playerName={playerName}
-        onOpenSettings={() => setIsOptionsOpen(true)}
-        onOpenStore={() => setIsStoreOpen(true)}
-        onOpenQrScanner={() => setIsQrScannerOpen(true)}
+        points={points} lives={lives} streak={streak} mascot={equippedMascot} accessory={equippedAccessory} playerName={playerName}
+        onOpenSettings={() => setIsOptionsOpen(true)} onOpenStore={() => setIsStoreOpen(true)} onOpenQrScanner={() => setIsQrScannerOpen(true)}
       />
 
-      <main className="w-full max-w-lg px-3 sm:px-4 mt-2 font-comic space-y-3 flex-1 flex flex-col justify-center">
+      <main className="w-full max-w-lg px-3 mt-4 flex-1 flex flex-col">
         {toastMessage && (
-          <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-xl font-black text-sm text-white transition-all animate-bounce ${toastMessage.type === 'error' ? 'bg-rose-500' : toastMessage.type === 'success' ? 'bg-emerald-500' : 'bg-sky-500'}`}>
+          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl shadow-2xl text-white font-black text-center transition-all animate-bounce ${toastMessage.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}>
             {toastMessage.text}
           </div>
         )}
 
         {!problem ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3 my-auto">
-            <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="font-black text-sky-900 text-sm">🐶 Preparando tu aventura...</p>
+          <div className="m-auto text-center flex flex-col items-center">
+            <div className="w-16 h-16 border-8 border-sky-200 border-t-sky-500 rounded-full animate-spin mb-4" />
+            <p className="font-black text-sky-800 animate-pulse">Cargando aventura...</p>
           </div>
         ) : (
-          <>
-            <StoryCard icon={problem.story.icon} storyText={problem.story.text} questionText={problem.story.question} currentLevel={currentLevel} currentProblemIndex={currentProblemIndex} totalProblems={totalProblems} />
+          <div className="space-y-4 animate-fadeIn">
+            <StoryCard
+              problem={problem}
+              currentProblemIndex={currentProblemIndex}
+              gradeLabel={LEVEL_CONFIGS[currentLevel].label}
+              gamePhase={gamePhase}
+            />
             <DigitsBank chips={chips} selectedChipId={selectedChipId} onSelectChip={setSelectedChipId} gamePhase={gamePhase} />
-            <PositionalBoard num1={problem.num1} num2={problem.num2} operation={problem.operation} activeCols={problem.activeCols} gamePhase={gamePhase} placedDigits={placedDigits} selectedDigit={selectedChipId ? chips.find((c) => c.id === selectedChipId)?.value || null : null} onCellClick={handleCellClick} incorrectResultCols={incorrectResultCols} />
-            <div className="flex items-center justify-between gap-2 py-1">
-              <button onClick={resetGameProgress} className="clay-btn bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-black py-2.5 px-3 rounded-2xl">🔄 Reiniciar</button>
-              {gamePhase === 'placing' && <button onClick={handleCalculatePhase} className="clay-btn bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white text-xs sm:text-sm font-black py-2.5 px-4 rounded-2xl shadow-md">🧮 ¡Calcular!</button>}
-              {gamePhase === 'calculating' && <button onClick={handleCheckFinalAnswer} className="clay-btn bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs sm:text-sm font-black py-2.5 px-4 rounded-2xl shadow-md">✅ Comprobar</button>}
-              {gamePhase === 'complete' && <button onClick={handleNextProblem} className="clay-btn bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white text-xs sm:text-sm font-black py-2.5 px-4 rounded-2xl shadow-md animate-pulse">➡️ Siguiente</button>}
-              <button onClick={handleProvideHint} className="clay-btn bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs sm:text-sm font-black py-2.5 px-3 rounded-2xl">💡 Ayuda</button>
+            <PositionalBoard num1={problem.num1} num2={problem.num2} operation={problem.operation} activeCols={problem.activeCols} gamePhase={gamePhase} placedDigits={placedDigits} selectedDigit={selectedChipId ? chips.find(c => c.id === selectedChipId)?.value || null : null} onCellClick={handleCellClick} incorrectResultCols={incorrectResultCols} />
+
+            <div className="flex gap-3 justify-center py-4">
+              <button onClick={resetGameProgress} className="bg-slate-200 hover:bg-slate-300 p-4 rounded-3xl font-black text-xl shadow-md active:scale-95 transition-all">🔄</button>
+              {gamePhase === 'placing' && (
+                <button onClick={() => { sound.playSuccess(); setGamePhase('calculating'); setSelectedChipId(null); }} className="bg-gradient-to-r from-sky-400 to-blue-600 text-white px-8 py-4 rounded-3xl font-black text-lg shadow-xl flex-1 active:scale-95 transition-all">¡Acomodado! 🚀</button>
+              )}
+              {gamePhase === 'calculating' && (
+                <button onClick={handleCheckResult} className="bg-gradient-to-r from-emerald-400 to-teal-600 text-white px-8 py-4 rounded-3xl font-black text-lg shadow-xl flex-1 active:scale-95 transition-all">¡Comprobar! ✅</button>
+              )}
+              {gamePhase === 'complete' && (
+                <button onClick={() => { if (currentProblemIndex >= totalProblems) { stopTimer(); setIsVictoryOpen(true); } else { setCurrentProblemIndex(i => i + 1); generateProblem(); } }} className="bg-gradient-to-r from-amber-400 to-orange-500 text-white px-8 py-4 rounded-3xl font-black text-lg shadow-xl flex-1 animate-pulse">Siguiente ➡️</button>
+              )}
             </div>
-          </>
+          </div>
         )}
       </main>
 
       <BottomNav activeTab="game" onTabChange={(tab) => { if (tab === 'options') setIsOptionsOpen(true); if (tab === 'store') setIsStoreOpen(true); if (tab === 'report') setIsTeacherReportOpen(true); }} />
 
-      <WelcomeModal
-        isOpen={isWelcomeOpen}
-        onClose={() => setIsWelcomeOpen(false)}
-        playerName={playerName}
-        onUpdatePlayerName={setPlayerName}
-        equippedMascot={equippedMascot}
-        equippedAccessory={equippedAccessory}
-        currentLevel={currentLevel}
-        onSelectLevel={setCurrentLevel}
-        onStartGame={resetGameProgress}
-      />
-      <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={setCurrentLevel} onChangeMode={setCurrentMode} />
-      <StoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} points={points} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} onEquipItem={handleEquipItem} onUnlockItem={handleUnlockItem} />
-      <TeacherReportModal isOpen={isTeacherReportOpen} onClose={() => setIsTeacherReportOpen(false)} solvedCount={solvedCount} lives={lives} streak={streak} points={points} currentLevel={currentLevel} currentMode={currentMode} onPrintWorksheet={handlePrintWorksheet} />
+      <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} onUpdatePlayerName={setPlayerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={(l) => { setCurrentLevel(l); generateProblem(l); }} onStartGame={resetGameProgress} />
+      <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={(l) => { setCurrentLevel(l); generateProblem(l, currentMode); }} onChangeMode={(m) => { setCurrentMode(m); generateProblem(currentLevel, m); }} />
+      <StoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} points={points} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} onEquipItem={(i) => i.category === 'mascot' ? setEquippedMascot(i.id) : setEquippedAccessory(i.id)} onUnlockItem={(i) => { setPoints(p => p - i.cost); setUnlockedItems(u => [...u, i.id]); }} />
+      <TeacherReportModal isOpen={isTeacherReportOpen} onClose={() => setIsTeacherReportOpen(false)} solvedCount={solvedCount} lives={lives} streak={streak} points={points} currentLevel={currentLevel} currentMode={currentMode} onPrintWorksheet={() => setIsWorksheetShareOpen(true)} />
       <VictoryModal isOpen={isVictoryOpen} onClose={() => { setIsVictoryOpen(false); resetGameProgress(); }} onGoToStore={() => { setIsVictoryOpen(false); setIsStoreOpen(true); }} timeSeconds={timerSeconds} pointsEarned={500} />
-      <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onAwardPoints={(amount) => { setPoints(p => p + amount); showToast(`Ficha calificada +${amount} ⭐`, 'success'); setIsQrScannerOpen(false); }} />
-      {isWorksheetShareOpen && <WorksheetShareModal isOpen={isWorksheetShareOpen} onClose={() => setIsWorksheetShareOpen(false)} gradeLevel={currentLevel} currentMode={currentMode} printCounter={printCounter} onPrint={handlePrintWorksheet} />}
+      <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onAwardPoints={(a) => setPoints(p => p + a)} />
     </div>
   );
 };

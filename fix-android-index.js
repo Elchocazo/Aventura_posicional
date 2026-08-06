@@ -4,8 +4,9 @@ import path from 'path';
 const distIndex = path.resolve('dist/index.html');
 if (fs.existsSync(distIndex)) {
   let content = fs.readFileSync(distIndex, 'utf8');
-  content = content.replace(/type="module"/g, 'defer');
-  content = content.replace(/crossorigin/g, '');
+  // Solo eliminar 'crossorigin' - NO eliminar type="module"
+  // porque el bundle usa import.meta que requiere contexto de módulo ES
+  content = content.replace(/ crossorigin/g, '');
   fs.writeFileSync(distIndex, content, 'utf8');
-  console.log('✅ Android index.html fixed: type="module" and crossorigin removed for Android WebView compatibility!');
+  console.log('✅ Android index.html fixed: solo se elimino crossorigin, type="module" conservado para import.meta');
 }
