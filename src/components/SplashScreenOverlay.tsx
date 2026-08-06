@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Play } from 'lucide-react';
 import splashImg from '../assets/splash.jpg';
 import { sound } from '../utils/sound';
 
@@ -7,9 +6,23 @@ interface SplashScreenOverlayProps {
   onFinish: () => void;
 }
 
+const NUMBERS = ['1', '2', '5', '10', '+', '-'];
+
 export const SplashScreenOverlay: React.FC<SplashScreenOverlayProps> = ({ onFinish }) => {
   const [progress, setProgress] = useState(0);
+  const [chaseNum, setChaseNum] = useState('5');
 
+  // Rotate the number being chased
+  useEffect(() => {
+    let i = 0;
+    const rotator = setInterval(() => {
+      i = (i + 1) % NUMBERS.length;
+      setChaseNum(NUMBERS[i]);
+    }, 600);
+    return () => clearInterval(rotator);
+  }, []);
+
+  // Progress bar
   useEffect(() => {
     const timer = setInterval(() => {
       setProgress((prev) => {
@@ -20,86 +33,174 @@ export const SplashScreenOverlay: React.FC<SplashScreenOverlayProps> = ({ onFini
         return prev + 5;
       });
     }, 80);
-
     return () => clearInterval(timer);
   }, []);
 
+  // Auto-finish when done
   useEffect(() => {
     if (progress >= 100) {
-      const timeout = setTimeout(() => {
-        onFinish();
-      }, 400);
-      return () => clearTimeout(timeout);
+      const t = setTimeout(() => onFinish(), 350);
+      return () => clearTimeout(t);
     }
   }, [progress, onFinish]);
 
   const handleTap = () => {
-    sound.playSuccess();
+    sound.playPop();
     onFinish();
   };
 
   return (
     <div
       onClick={handleTap}
-      className="fixed inset-0 z-[99999] bg-gradient-to-b from-sky-400 via-sky-300 to-indigo-500 flex flex-col items-center justify-between p-4 cursor-pointer select-none no-print overflow-hidden transition-opacity duration-500"
+      style={{
+        position: 'fixed',
+        top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        zIndex: 99999,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        cursor: 'pointer',
+        userSelect: 'none',
+        overflow: 'hidden',
+        background: '#7dd3fc',
+      }}
     >
-      {/* Background Graphic Image (Bundled Asset) */}
+      {/* Full-screen splash image */}
       <img
         src={splashImg}
-        alt="NumiMates Splash Screen"
-        className="absolute inset-0 w-full h-full object-cover object-center z-0"
+        alt="NumiMates"
+        style={{
+          position: 'absolute',
+          top: 0, left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center top',
+        }}
       />
 
-      {/* Backup Fallback 2D Animated Graphic in case image is loading */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-sky-400 via-sky-300 to-indigo-600 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
-        <div className="text-7xl sm:text-8xl animate-bounce mb-4">🐶</div>
-        <h1 className="text-3xl sm:text-5xl font-black text-white drop-shadow-lg font-comic">
-          NumiMates
-        </h1>
-        <p className="text-sm sm:text-base font-extrabold text-sky-100 mt-2 drop-shadow">
-          ¡Aprende Jugando! • Valor Posicional
+      {/* Bottom loading panel */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        width: '100%',
+        padding: '0 0 env(safe-area-inset-bottom, 24px) 0',
+        background: 'linear-gradient(to top, rgba(15,23,42,0.85) 0%, transparent 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px',
+        paddingTop: '48px',
+        paddingBottom: '32px',
+      }}>
+
+        {/* Puppy chasing a number animation */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0px',
+          height: '52px',
+          width: '200px',
+          position: 'relative',
+          overflow: 'visible',
+        }}>
+          {/* Puppy running - bounces left-right */}
+          <span
+            key="puppy"
+            style={{
+              fontSize: '2.4rem',
+              display: 'inline-block',
+              animation: 'puppyRun 0.6s ease-in-out infinite alternate',
+              position: 'absolute',
+              left: '10px',
+            }}
+          >
+            🐶
+          </span>
+
+          {/* Number block fleeing to the right */}
+          <div
+            style={{
+              position: 'absolute',
+              right: '10px',
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #38bdf8, #6366f1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'system-ui, sans-serif',
+              fontWeight: 900,
+              fontSize: chaseNum.length > 1 ? '1rem' : '1.4rem',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              animation: 'numberBounce 0.6s ease-in-out infinite alternate-reverse',
+              border: '2px solid rgba(255,255,255,0.8)',
+            }}
+          >
+            {chaseNum}
+          </div>
+        </div>
+
+        {/* Loading text */}
+        <p style={{
+          margin: 0,
+          color: 'white',
+          fontWeight: 900,
+          fontSize: '0.85rem',
+          fontFamily: 'system-ui, sans-serif',
+          letterSpacing: '0.05em',
+          textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+        }}>
+          🚀 Cargando Aventura...
+        </p>
+
+        {/* Progress bar */}
+        <div style={{
+          width: '80%',
+          maxWidth: '300px',
+          height: '10px',
+          background: 'rgba(255,255,255,0.25)',
+          borderRadius: '999px',
+          overflow: 'hidden',
+          border: '1.5px solid rgba(255,255,255,0.5)',
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${progress}%`,
+            background: 'linear-gradient(90deg, #fbbf24, #34d399, #38bdf8)',
+            borderRadius: '999px',
+            transition: 'width 0.08s linear',
+          }} />
+        </div>
+
+        {/* Tap hint */}
+        <p style={{
+          margin: 0,
+          color: 'rgba(255,255,255,0.75)',
+          fontSize: '0.7rem',
+          fontFamily: 'system-ui, sans-serif',
+          fontWeight: 700,
+        }}>
+          Toca para iniciar ✨
         </p>
       </div>
 
-      {/* Decorative Overlay Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-sky-900/30 z-10 pointer-events-none" />
-
-      {/* Top Banner Tag */}
-      <div className="relative z-20 mt-6 pt-[env(safe-area-inset-top,24px)] flex items-center gap-2 px-5 py-2.5 bg-white/95 backdrop-blur-md rounded-full shadow-xl border-2 border-white animate-bounce-slow">
-        <span className="text-2xl">🐶</span>
-        <span className="font-black text-xs sm:text-sm bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent">
-          ¡Aprende Jugando! • NumiMates
-        </span>
-        <Sparkles className="w-4 h-4 text-amber-500 animate-spin-slow" />
-      </div>
-
-      {/* Bottom Loading Bar and CTA */}
-      <div className="relative z-20 w-full max-w-sm mb-8 space-y-3 px-4 text-center">
-        {/* Progress Bar */}
-        <div className="w-full bg-black/40 backdrop-blur-md p-1.5 rounded-full border-2 border-white/60 shadow-xl">
-          <div
-            className="h-3.5 rounded-full bg-gradient-to-r from-amber-400 via-emerald-400 to-sky-400 transition-all duration-100 shadow-inner"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        <div className="flex items-center justify-between text-white font-black text-xs px-2 drop-shadow-md">
-          <span>🚀 Cargando Aventura...</span>
-          <span>{progress}%</span>
-        </div>
-
-        {/* Tap to Start CTA Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleTap();
-          }}
-          className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-500 hover:to-rose-600 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-2xl border-2 border-white animate-pulse active:scale-95 transition-all"
-        >
-          <Play className="w-5 h-5 fill-white shrink-0" />
-          <span>¡Toca para Iniciar! 🎮</span>
-        </button>
-      </div>
+      {/* CSS Keyframe animations injected inline */}
+      <style>{`
+        @keyframes puppyRun {
+          0%   { transform: translateX(0px) scaleX(1); }
+          100% { transform: translateX(30px) scaleX(1); }
+        }
+        @keyframes numberBounce {
+          0%   { transform: translateX(0px) rotate(-5deg); }
+          100% { transform: translateX(-20px) rotate(5deg); }
+        }
+      `}</style>
     </div>
   );
 };
