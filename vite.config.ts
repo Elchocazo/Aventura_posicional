@@ -16,6 +16,8 @@ export default defineConfig(() => {
       outDir: 'dist',
       assetsDir: 'assets',
       emptyOutDir: true,
+      target: 'es2015',
+      modulePreload: false,
     }
   };
 });
