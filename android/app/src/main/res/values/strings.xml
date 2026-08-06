@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Aventura Matematica</string>
-    <string name="title_activity_main">Aventura Matematica</string>
+    <string name="app_name">NumiMates</string>
+    <string name="title_activity_main">NumiMates</string>
     <string name="package_name">com.ejemplo.aventuramatematica</string>
     <string name="custom_url_scheme">com.ejemplo.aventuramatematica</string>
 </resources>
