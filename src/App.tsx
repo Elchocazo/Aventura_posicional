@@ -34,6 +34,28 @@ interface SavedGameState {
   chips: Chip[];
 }
 
+function buildProblemObject(level: GradeLevel, mode: OperationMode): { problem: ProblemData; chips: Chip[] } {
+  const config = LEVEL_CONFIGS[level] || LEVEL_CONFIGS[3];
+  let op = mode;
+  if (op === 'mix') op = Math.random() > 0.5 ? 'add' : 'sub';
+  const raw1 = Math.floor(Math.random() * (config.max1 - config.min1 + 1)) + config.min1;
+  const raw2 = Math.floor(Math.random() * (config.max2 - config.min2 + 1)) + config.min2;
+  let num1 = raw1, num2 = raw2, operationSym: '+' | '-' = '+';
+  if (op === 'sub') { operationSym = '-'; num1 = Math.max(raw1, raw2); num2 = Math.min(raw1, raw2); }
+  else { operationSym = '+'; num1 = raw1; num2 = raw2; }
+  const result = operationSym === '+' ? num1 + num2 : num1 - num2;
+  const maxDigits = Math.max(num1.toString().length, num2.toString().length, result.toString().length);
+  const activeCols = ALL_COLUMNS.slice(ALL_COLUMNS.length - maxDigits);
+  const theme = STORY_THEMES[Math.floor(Math.random() * STORY_THEMES.length)];
+  const storyText = operationSym === '+' ? theme.addStory(num1.toLocaleString(), num2.toLocaleString()) : theme.subStory(num1.toLocaleString(), num2.toLocaleString());
+  const questionText = operationSym === '+' ? theme.addQuestion : theme.subQuestion;
+  const p: ProblemData = { num1, num2, operation: operationSym, activeCols, story: { icon: theme.icon, text: storyText, question: questionText } };
+  const d1 = num1.toString().split(''), d2 = num2.toString().split('');
+  const all = [...d1, ...d2].sort(() => Math.random() - 0.5);
+  const c: Chip[] = all.map((val, idx) => ({ id: `chip_place_${idx}_${val}`, value: val, used: false }));
+  return { problem: p, chips: c };
+}
+
 export const App: React.FC = () => {
   const [currentLevel, setCurrentLevel] = useState<GradeLevel>(3);
   const [currentMode, setCurrentMode] = useState<OperationMode>('add');
@@ -58,6 +80,7 @@ export const App: React.FC = () => {
   });
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('math_player_name') || 'Explorador');
+  const [playerTitle, setPlayerTitle] = useState(() => localStorage.getItem('math_player_title') || 'Aventurero del Cálculo');
 
   const [timerSeconds, setTimerSeconds] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,16 +94,25 @@ export const App: React.FC = () => {
   const [isWorksheetShareOpen, setIsWorksheetShareOpen] = useState(false);
   const [printCounter, setPrintCounter] = useState<number>(() => parseInt(localStorage.getItem('math_print_counter') || '1', 10));
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' | 'error' } | null>(null);
-  const [problem, setProblem] = useState<ProblemData | null>(null);
+  
+  // Synchronous initial problem state
+  const initialObj = useRef(buildProblemObject(3, 'add'));
+  const [problem, setProblem] = useState<ProblemData>(initialObj.current.problem);
   const [gamePhase, setGamePhase] = useState<GamePhase>('placing');
   const [placedDigits, setPlacedDigits] = useState<Record<string, string>>({});
-  const [chips, setChips] = useState<Chip[]>([]);
+  const [chips, setChips] = useState<Chip[]>(initialObj.current.chips);
   const [selectedChipId, setSelectedChipId] = useState<string | null>(null);
   const [incorrectResultCols, setIncorrectResultCols] = useState<PositionalCol[]>([]);
 
   const showToast = (text: string, type: 'info' | 'success' | 'error' = 'info') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    sound.enabled = next;
   };
 
   const startTimer = useCallback(() => {
@@ -100,27 +132,10 @@ export const App: React.FC = () => {
   }, [points, equippedMascot, equippedAccessory, unlockedItems, playerName]);
 
   const generateProblem = useCallback(() => {
-    const config = LEVEL_CONFIGS[currentLevel];
-    if (!config) return;
-
-    let op = currentMode;
-    if (op === 'mix') op = Math.random() > 0.5 ? 'add' : 'sub';
-    const raw1 = Math.floor(Math.random() * (config.max1 - config.min1 + 1)) + config.min1;
-    const raw2 = Math.floor(Math.random() * (config.max2 - config.min2 + 1)) + config.min2;
-    let num1 = raw1, num2 = raw2, operationSym: '+' | '-' = '+';
-    if (op === 'sub') { operationSym = '-'; num1 = Math.max(raw1, raw2); num2 = Math.min(raw1, raw2); }
-    else { operationSym = '+'; num1 = raw1; num2 = raw2; }
-    const result = operationSym === '+' ? num1 + num2 : num1 - num2;
-    const maxDigits = Math.max(num1.toString().length, num2.toString().length, result.toString().length);
-    const activeCols = ALL_COLUMNS.slice(ALL_COLUMNS.length - maxDigits);
-    const theme = STORY_THEMES[Math.floor(Math.random() * STORY_THEMES.length)];
-    const storyText = operationSym === '+' ? theme.addStory(num1.toLocaleString(), num2.toLocaleString()) : theme.subStory(num1.toLocaleString(), num2.toLocaleString());
-    const questionText = operationSym === '+' ? theme.addQuestion : theme.subQuestion;
-    setProblem({ num1, num2, operation: operationSym, activeCols, story: { icon: theme.icon, text: storyText, question: questionText } });
+    const obj = buildProblemObject(currentLevel, currentMode);
+    setProblem(obj.problem);
     setGamePhase('placing'); setPlacedDigits({}); setIncorrectResultCols([]); setSelectedChipId(null);
-    const d1 = num1.toString().split(''), d2 = num2.toString().split('');
-    const all = [...d1, ...d2].sort(() => Math.random() - 0.5);
-    setChips(all.map((val, idx) => ({ id: `chip_place_${idx}_${val}`, value: val, used: false })));
+    setChips(obj.chips);
   }, [currentLevel, currentMode]);
 
   const resetGameProgress = useCallback(() => {
@@ -135,29 +150,22 @@ export const App: React.FC = () => {
   const prevConfigRef = useRef({ level: currentLevel, mode: currentMode });
 
   useEffect(() => {
-    const initGame = () => {
-      try {
-        const savedStr = localStorage.getItem(AUTO_SAVE_KEY);
-        if (savedStr) {
-          const saved: SavedGameState = JSON.parse(savedStr);
-          if (saved && saved.problem) {
-            setCurrentLevel(saved.currentLevel); setCurrentMode(saved.currentMode); setPoints(saved.points);
-            setLives(saved.lives); setStreak(saved.streak); setMaxStreak(saved.maxStreak);
-            setCurrentProblemIndex(saved.currentProblemIndex); setSolvedCount(saved.solvedCount); setTimerSeconds(saved.timerSeconds);
-            setProblem(saved.problem); setGamePhase(saved.gamePhase); setPlacedDigits(saved.placedDigits); setChips(saved.chips);
-            startTimer();
-            return;
-          }
+    try {
+      const savedStr = localStorage.getItem(AUTO_SAVE_KEY);
+      if (savedStr) {
+        const saved: SavedGameState = JSON.parse(savedStr);
+        if (saved && saved.problem) {
+          setCurrentLevel(saved.currentLevel); setCurrentMode(saved.currentMode); setPoints(saved.points);
+          setLives(saved.lives); setStreak(saved.streak); setMaxStreak(saved.maxStreak);
+          setCurrentProblemIndex(saved.currentProblemIndex); setSolvedCount(saved.solvedCount); setTimerSeconds(saved.timerSeconds);
+          setProblem(saved.problem); setGamePhase(saved.gamePhase); setPlacedDigits(saved.placedDigits); setChips(saved.chips);
+          startTimer(); return;
         }
-      } catch (e) {
-        console.error("Error restoring game state", e);
       }
-      resetGameProgress();
-    };
-
-    initGame();
+    } catch (e) {}
+    resetGameProgress();
     return () => stopTimer();
-  }, [resetGameProgress, startTimer, stopTimer]);
+  }, []);
 
   useEffect(() => {
     if (isInitialMountRef.current) { isInitialMountRef.current = false; return; }
@@ -171,6 +179,11 @@ export const App: React.FC = () => {
     const stateToSave = { currentLevel, currentMode, points, lives, streak, maxStreak, currentProblemIndex, solvedCount, timerSeconds, problem, gamePhase, placedDigits, chips };
     localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(stateToSave));
   }, [currentLevel, currentMode, points, lives, streak, maxStreak, currentProblemIndex, solvedCount, timerSeconds, problem, gamePhase, placedDigits, chips]);
+
+  const handleFinishSplash = useCallback(() => {
+    setShowSplash(false);
+    setIsWelcomeOpen(true);
+  }, []);
 
   const handleCellClick = (row: string, col: PositionalCol) => {
     const key = `${row}_${col}`, currentValue = placedDigits[key];
@@ -297,18 +310,9 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-100 via-sky-50 to-indigo-50 text-slate-900 pb-20 flex flex-col items-center">
+    <div className="min-h-screen bg-gradient-to-b from-sky-100 via-sky-50 to-indigo-50 text-slate-900 pb-20 flex flex-col items-center w-full overflow-x-hidden">
       {/* 1. SPLASH SCREEN OVERLAY ON APP LAUNCH */}
-      {showSplash && (
-        <SplashScreenOverlay
-          onFinish={() => {
-            setShowSplash(false);
-            if (!problem) {
-              setIsWelcomeOpen(true);
-            }
-          }}
-        />
-      )}
+      {showSplash && <SplashScreenOverlay onFinish={handleFinishSplash} />}
 
       <Header
         points={points}
@@ -329,7 +333,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {problem ? (
+        {problem && (
           <>
             <StoryCard icon={problem.story.icon} storyText={problem.story.text} questionText={problem.story.question} currentLevel={currentLevel} currentProblemIndex={currentProblemIndex} totalProblems={totalProblems} />
             <DigitsBank chips={chips} selectedChipId={selectedChipId} onSelectChip={setSelectedChipId} gamePhase={gamePhase} />
@@ -342,13 +346,6 @@ export const App: React.FC = () => {
               <button onClick={handleProvideHint} className="clay-btn bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs sm:text-sm font-black py-2.5 px-3 rounded-2xl">💡 Ayuda</button>
             </div>
           </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
-             <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center animate-bounce">
-                <span className="text-4xl">🚀</span>
-             </div>
-             <p className="font-black text-slate-400">Preparando tu aventura...</p>
-          </div>
         )}
       </main>
 
