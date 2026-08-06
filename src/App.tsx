@@ -271,10 +271,17 @@ export const App: React.FC = () => {
 
       <BottomNav activeTab="game" onChangeTab={(tab) => { if (tab === 'levels') setIsOptionsOpen(true); if (tab === 'store') setIsStoreOpen(true); if (tab === 'report') setIsTeacherReportOpen(true); if (tab === 'profile') setIsWelcomeOpen(true); }} />
 
-      <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} onUpdatePlayerName={setPlayerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={(l) => { setCurrentLevel(l); generateProblem(l); }} onStartGame={resetGameProgress} />
-      <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={(l) => { setCurrentLevel(l); generateProblem(l, currentMode); }} onChangeMode={(m) => { setCurrentMode(m); generateProblem(currentLevel, m); }} />
+      <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} onUpdatePlayerName={setPlayerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={setCurrentLevel} onStartGame={resetGameProgress} />
+      <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={setCurrentLevel} onChangeMode={setCurrentMode} />
       <StoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} points={points} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} onEquipItem={(i) => i.category === 'mascot' ? setEquippedMascot(i.id) : setEquippedAccessory(i.id)} onUnlockItem={(i) => { setPoints(p => p - i.cost); setUnlockedItems(u => [...u, i.id]); }} />
-      <TeacherReportModal isOpen={isTeacherReportOpen} onClose={() => setIsTeacherReportOpen(false)} solvedCount={solvedCount} lives={lives} streak={streak} points={points} currentLevel={currentLevel} currentMode={currentMode} onPrintWorksheet={() => setIsWorksheetShareOpen(true)} />
+      <TeacherReportModal
+        isOpen={isTeacherReportOpen}
+        onClose={() => setIsTeacherReportOpen(false)}
+        stats={{ solvedCount, maxStreak: maxStreak, accuracy: solvedCount > 0 ? Math.round((solvedCount / (solvedCount + (3 - lives))) * 100) : 0, points, timeSpentSec: timerSeconds }}
+        onResetStats={() => { setSolvedCount(0); setStreak(0); setMaxStreak(0); setTimerSeconds(0); }}
+        onPrintWorksheet={() => setIsWorksheetShareOpen(true)}
+        onOpenQrScanner={() => setIsQrScannerOpen(true)}
+      />
       <VictoryModal isOpen={isVictoryOpen} onClose={() => { setIsVictoryOpen(false); resetGameProgress(); }} onGoToStore={() => { setIsVictoryOpen(false); setIsStoreOpen(true); }} timeSeconds={timerSeconds} pointsEarned={500} />
       <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onAwardPoints={(a) => setPoints(p => p + a)} />
     </div>
