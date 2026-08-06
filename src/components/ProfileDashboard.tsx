@@ -636,49 +636,8 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
           })}
         </div>
       </div>
-
-      {/* 6. QUICK ACTION DASHBOARD TOOLBAR */}
-      <div className="clay-card p-4 space-y-3">
-        <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-sky-600" />
-          <span>Panel de Accesos Rápidos</span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <button
-            onClick={() => {
-              sound.playSelect();
-              onStartGame();
-            }}
-            className="clay-btn-sky p-3 font-black text-xs flex items-center justify-center gap-2"
-          >
-            <Play className="w-4 h-4 fill-current" />
-            <span>Continuar Aventura 🚀</span>
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playSelect();
-              onOpenStore();
-            }}
-            className="clay-btn-purple p-3 font-black text-xs flex items-center justify-center gap-2"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span>Tienda de Mascotas 🛍️</span>
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playSelect();
-              onOpenReport();
-            }}
-            className="clay-btn-emerald p-3 font-black text-xs flex items-center justify-center gap-2"
-          >
-            <GraduationCap className="w-4 h-4" />
-            <span>Reporte y Ficha PDF 🎓</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
+
+

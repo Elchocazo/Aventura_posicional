@@ -287,7 +287,7 @@ export const App: React.FC = () => {
       {/* WelcomeModal: solo al primer inicio */}
       <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} onUpdatePlayerName={setPlayerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={setCurrentLevel} onStartGame={resetGameProgress} />
 
-      {/* Niveles/Opciones: ajustes del juego */}
+      {/* Niveles/Opciones: niveles y modos de juego */}
       <OptionsMenuModal
         isOpen={isOptionsOpen}
         onClose={() => setIsOptionsOpen(false)}
@@ -295,7 +295,8 @@ export const App: React.FC = () => {
         onToggleSound={() => { const n = !soundEnabled; setSoundEnabled(n); sound.enabled = n; }}
         currentLevel={currentLevel}
         currentMode={currentMode}
-        onChangeLevelTab={() => { setIsOptionsOpen(false); }}
+        onChangeLevel={(l) => { setCurrentLevel(l); generateProblem(l, currentMode); }}
+        onChangeMode={(m) => { setCurrentMode(m); generateProblem(currentLevel, m); }}
         onResetStats={() => { setSolvedCount(0); setStreak(0); setMaxStreak(0); setTimerSeconds(0); }}
         onOpenWelcome={() => { setIsOptionsOpen(false); setIsWelcomeOpen(true); }}
       />

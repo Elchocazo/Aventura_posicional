@@ -8,7 +8,7 @@ import {
   Check,
   ShieldAlert,
   Layers,
-  ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 import { GradeLevel, GameMode } from '../types';
 import { sound } from '../utils/sound';
@@ -20,16 +20,24 @@ interface OptionsMenuModalProps {
   onToggleSound: () => void;
   currentLevel: GradeLevel;
   currentMode: GameMode;
-  onChangeLevelTab: () => void;
+  onChangeLevel: (level: GradeLevel) => void;
+  onChangeMode: (mode: GameMode) => void;
   onResetStats: () => void;
   onOpenWelcome?: () => void;
 }
 
-const MODE_LABELS: Record<GameMode, string> = {
-  add: 'Suma ➕',
-  sub: 'Resta ➖',
-  mix: 'Mixto 🔀',
-};
+const MODES: { id: GameMode; label: string; icon: string; desc: string }[] = [
+  { id: 'add', label: 'Suma', icon: '➕', desc: 'Añadir y agrupar' },
+  { id: 'sub', label: 'Resta', icon: '➖', desc: 'Quitar y desagrupar' },
+  { id: 'mix', label: 'Mixto', icon: '🔀', desc: 'Sumas y Restas' },
+];
+
+const GRADES: { level: GradeLevel; label: string; desc: string }[] = [
+  { level: 2, label: '2° Grado', desc: 'Decenas y Unidades (10 a 99)' },
+  { level: 3, label: '3° Grado', desc: 'Centenas, D y U (100 a 999)' },
+  { level: 4, label: '4° Grado', desc: 'Unidades de Mil (1,000 a 9,999)' },
+  { level: 5, label: '5° Grado', desc: 'Decenas de Mil (10,000 a 99,999)' },
+];
 
 export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
   isOpen,
@@ -38,7 +46,8 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
   onToggleSound,
   currentLevel,
   currentMode,
-  onChangeLevelTab,
+  onChangeLevel,
+  onChangeMode,
   onResetStats,
   onOpenWelcome,
 }) => {
@@ -48,19 +57,19 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 no-print animate-fadeIn">
-      <div className="clay-card rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border-4 border-white text-slate-800 relative max-h-[90vh] overflow-y-auto space-y-5">
+      <div className="clay-card rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-4 border-white text-slate-800 relative max-h-[90vh] overflow-y-auto space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-sky-500 text-white rounded-2xl shadow-xs">
-              <Settings className="w-5 h-5 animate-spin-slow" />
+              <Layers className="w-5 h-5" />
             </div>
             <div>
               <h2 className="font-black text-base sm:text-lg text-sky-950 leading-tight">
-                Opciones
+                Niveles y Modos de Juego
               </h2>
               <p className="text-[11px] font-extrabold text-slate-500">
-                Ajustes principales del juego
+                Selecciona tu grado y tipo de operación
               </p>
             </div>
           </div>
@@ -77,7 +86,76 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
           </button>
         </div>
 
-        {/* 1. AUDIO & SOUND EFFECT */}
+        {/* 1. SELECCIÓN DE MODO DE OPERACIÓN */}
+        <div className="space-y-2">
+          <span className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <span>⚡ Modo de Operación</span>
+          </span>
+          <div className="grid grid-cols-3 gap-2">
+            {MODES.map((m) => {
+              const isActive = currentMode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    sound.playSelect();
+                    onChangeMode(m.id);
+                  }}
+                  className={`p-3 rounded-2xl border-2 font-black text-xs flex flex-col items-center justify-center gap-1 transition-all active:scale-95 ${
+                    isActive
+                      ? 'clay-btn-sky text-white border-sky-400 shadow-md scale-105'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-xl">{m.icon}</span>
+                  <span className="font-black text-xs">{m.label}</span>
+                  <span className="text-[9px] opacity-80 font-normal">{m.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. SELECCIÓN DE GRADO / DIFICULTAD */}
+        <div className="space-y-2">
+          <span className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-sky-600" />
+            <span>Selecciona tu Grado</span>
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {GRADES.map((g) => {
+              const isActive = currentLevel === g.level;
+              return (
+                <button
+                  key={g.level}
+                  onClick={() => {
+                    sound.playSelect();
+                    onChangeLevel(g.level);
+                  }}
+                  className={`p-3 rounded-2xl border-2 text-left transition-all active:scale-95 flex flex-col justify-between ${
+                    isActive
+                      ? 'clay-card-emerald border-emerald-400 text-emerald-950 shadow-md ring-2 ring-emerald-500'
+                      : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-sm">{g.label}</span>
+                    {isActive && (
+                      <span className="bg-emerald-500 text-white p-1 rounded-full text-xs">
+                        <Check className="w-3 h-3" />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-500 mt-1">
+                    {g.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 3. AUDIO & SOUND EFFECT */}
         <div className="clay-card-sky p-3.5 space-y-2">
           <div className="flex items-center justify-between">
             <span className="font-black text-xs uppercase tracking-wider text-sky-900 flex items-center gap-1.5">
@@ -86,7 +164,7 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
               ) : (
                 <VolumeX className="w-4 h-4 text-slate-400" />
               )}
-              <span>Sonido</span>
+              <span>Efectos de Sonido</span>
             </span>
 
             <button
@@ -117,45 +195,7 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
           </div>
         </div>
 
-        {/* 2. CURRENT GRADE & MODE SUMMARY WITH DIRECT LINK TO NIVELES TAB */}
-        <div className="clay-card-purple p-3.5 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-black text-xs uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-purple-600" />
-              <span>Configuración Actual</span>
-            </span>
-            <span className="text-xs font-black bg-white/80 px-2.5 py-0.5 rounded-full text-purple-950 border border-purple-200">
-              {currentLevel}° Grado • {MODE_LABELS[currentMode]}
-            </span>
-          </div>
-
-          <button
-            onClick={() => {
-              sound.playSelect();
-              onClose();
-              onChangeLevelTab();
-            }}
-            className="w-full mt-1 py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
-          >
-            <span>Cambiar Grado y Operación</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-
-          {onOpenWelcome && (
-            <button
-              onClick={() => {
-                sound.playSelect();
-                onClose();
-                onOpenWelcome();
-              }}
-              className="w-full py-2 px-3 bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-colors shadow-2xs"
-            >
-              <span>Ver Pantalla de Bienvenida 👋</span>
-            </button>
-          )}
-        </div>
-
-        {/* 3. RESET SESSION STATS */}
+        {/* 4. REINICIAR ESTADÍSTICAS */}
         <div className="pt-1 border-t border-slate-200/80">
           {!showConfirmReset ? (
             <button
@@ -193,7 +233,7 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
           )}
         </div>
 
-        {/* CLOSE BUTTON AT BOTTOM */}
+        {/* BOTÓN CERRAR */}
         <button
           onClick={() => {
             sound.playSelect();
@@ -201,9 +241,10 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
           }}
           className="w-full py-3 clay-btn-sky font-black text-xs rounded-2xl"
         >
-          Cerrar 🚀
+          ¡A Jugar! 🚀
         </button>
       </div>
     </div>
   );
 };
+
