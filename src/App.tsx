@@ -312,7 +312,17 @@ export const App: React.FC = () => {
 
       <BottomNav activeTab={activeTab} onChangeTab={setActiveTab} />
 
-      <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} onSelectLevel={(lvl) => { setCurrentLevel(lvl); setIsWelcomeOpen(false); }} />
+      <WelcomeModal
+        isOpen={isWelcomeOpen}
+        onClose={() => setIsWelcomeOpen(false)}
+        playerName={playerName}
+        onUpdatePlayerName={setPlayerName}
+        equippedMascot={equippedMascot}
+        equippedAccessory={equippedAccessory}
+        currentLevel={currentLevel}
+        onSelectLevel={setCurrentLevel}
+        onStartGame={resetGameProgress}
+      />
       <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={setCurrentLevel} onChangeMode={setCurrentMode} />
       <VictoryModal isOpen={isVictoryOpen} onClose={() => { setIsVictoryOpen(false); resetGameProgress(); }} onGoToStore={() => { setIsVictoryOpen(false); setActiveTab('store'); }} timeSeconds={timerSeconds} pointsEarned={500} />
       <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onAwardPoints={(amount) => { setPoints(p => p + amount); showToast(`Ficha calificada +${amount} ⭐`, 'success'); setIsQrScannerOpen(false); }} />
