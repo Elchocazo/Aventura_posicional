@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, Play } from 'lucide-react';
+import splashImg from '../assets/splash.jpg';
 import { sound } from '../utils/sound';
 
 interface SplashScreenOverlayProps {
@@ -19,7 +20,7 @@ export const SplashScreenOverlay: React.FC<SplashScreenOverlayProps> = ({ onFini
           }, 300);
           return 100;
         }
-        return prev + 5;
+        return prev + 4;
       });
     }, 100);
 
@@ -36,15 +37,11 @@ export const SplashScreenOverlay: React.FC<SplashScreenOverlayProps> = ({ onFini
       onClick={handleTap}
       className="fixed inset-0 z-50 bg-sky-400 flex flex-col items-center justify-between p-4 cursor-pointer select-none no-print overflow-hidden animate-fadeIn"
     >
-      {/* Background Graphic Image */}
+      {/* Bundled Asset Image (Guaranteed 100% to load in Android WebView) */}
       <img
-        src="/splash.jpg"
+        src={splashImg}
         alt="NumiMates Splash Screen"
         className="absolute inset-0 w-full h-full object-cover object-center z-0"
-        onError={(e) => {
-          // Fallback if image fails to load
-          e.currentTarget.style.display = 'none';
-        }}
       />
 
       {/* Decorative Gradient Overlay for Text Readability */}
