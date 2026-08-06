@@ -97,7 +97,7 @@ export const App: React.FC = () => {
   
   // Synchronous initial problem state
   const initialObj = useRef(buildProblemObject(3, 'add'));
-  const [problem, setProblem] = useState<ProblemData>(initialObj.current.problem);
+  const [problem, setProblem] = useState<ProblemData | null>(initialObj.current.problem);
   const [gamePhase, setGamePhase] = useState<GamePhase>('placing');
   const [placedDigits, setPlacedDigits] = useState<Record<string, string>>({});
   const [chips, setChips] = useState<Chip[]>(initialObj.current.chips);
@@ -165,7 +165,7 @@ export const App: React.FC = () => {
     } catch (e) {}
     resetGameProgress();
     return () => stopTimer();
-  }, []);
+  }, [resetGameProgress, startTimer]);
 
   useEffect(() => {
     if (isInitialMountRef.current) { isInitialMountRef.current = false; return; }
@@ -183,7 +183,10 @@ export const App: React.FC = () => {
   const handleFinishSplash = useCallback(() => {
     setShowSplash(false);
     setIsWelcomeOpen(true);
-  }, []);
+    if (!problem) {
+      resetGameProgress();
+    }
+  }, [problem, resetGameProgress]);
 
   const handleCellClick = (row: string, col: PositionalCol) => {
     const key = `${row}_${col}`, currentValue = placedDigits[key];
@@ -326,14 +329,19 @@ export const App: React.FC = () => {
         onOpenQrScanner={() => setIsQrScannerOpen(true)}
       />
 
-      <main className="w-full max-w-lg px-3 sm:px-4 mt-2 font-comic space-y-3 flex-1">
+      <main className="w-full max-w-lg px-3 sm:px-4 mt-2 font-comic space-y-3 flex-1 flex flex-col justify-center">
         {toastMessage && (
           <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl shadow-xl font-black text-sm text-white transition-all animate-bounce ${toastMessage.type === 'error' ? 'bg-rose-500' : toastMessage.type === 'success' ? 'bg-emerald-500' : 'bg-sky-500'}`}>
             {toastMessage.text}
           </div>
         )}
 
-        {problem && (
+        {!problem ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3 my-auto">
+            <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="font-black text-sky-900 text-sm">🐶 Preparando tu aventura...</p>
+          </div>
+        ) : (
           <>
             <StoryCard icon={problem.story.icon} storyText={problem.story.text} questionText={problem.story.question} currentLevel={currentLevel} currentProblemIndex={currentProblemIndex} totalProblems={totalProblems} />
             <DigitsBank chips={chips} selectedChipId={selectedChipId} onSelectChip={setSelectedChipId} gamePhase={gamePhase} />
