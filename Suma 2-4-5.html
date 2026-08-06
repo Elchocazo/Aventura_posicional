@@ -1043,6 +1043,52 @@
 </head>
 <body>
 
+    <!-- PANTALLA DE INICIO (SPLASH SCREEN OVERLAY 2D) -->
+    <div id="appSplashScreenOverlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0F172A; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; transition: opacity 0.5s ease-out; select-user: none; cursor: pointer;">
+        <img src="splash.jpg" alt="NumiMates Splash" style="position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" onerror="this.style.display='none'">
+        <div style="position: relative; z-index: 10; margin-top: 40px; padding: 10px 20px; background: rgba(255,255,255,0.95); border-radius: 999px; font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 0.95rem; color: #00B4D8; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border: 2px solid white;">
+            🐶 ¡Aprende Jugando! • NumiMates
+        </div>
+        <div style="position: relative; z-index: 10; width: 90%; max-width: 360px; margin-bottom: 40px; text-align: center; background: rgba(15,23,42,0.7); backdrop-filter: blur(8px); padding: 16px; border-radius: 20px; border: 2px solid rgba(255,255,255,0.4);">
+            <div style="width: 100%; height: 12px; background: rgba(0,0,0,0.5); border-radius: 999px; overflow: hidden; margin-bottom: 8px; border: 1.5px solid rgba(255,255,255,0.6);">
+                <div id="splashProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #F59E0B, #10B981, #00B4D8); transition: width 0.1s linear;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.8rem; color: white;">
+                <span>🚀 Cargando Aventura...</span>
+                <span id="splashProgressPct">0%</span>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            let pct = 0;
+            const splashTimer = setInterval(() => {
+                pct += 5;
+                const bar = document.getElementById('splashProgressBar');
+                const txt = document.getElementById('splashProgressPct');
+                if (bar) bar.style.width = pct + '%';
+                if (txt) txt.textContent = pct + '%';
+                if (pct >= 100) {
+                    clearInterval(splashTimer);
+                    const overlay = document.getElementById('appSplashScreenOverlay');
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                        setTimeout(() => overlay.remove(), 500);
+                    }
+                }
+            }, 80);
+
+            const overlay = document.getElementById('appSplashScreenOverlay');
+            if (overlay) {
+                overlay.addEventListener('click', () => {
+                    clearInterval(splashTimer);
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.remove(), 500);
+                });
+            }
+        })();
+    </script>
+
     <div class="game-container">
 
         <!-- HEADER PRINCIPAL COMPACTO Y ELEGANTE DE ESCRITORIO -->
