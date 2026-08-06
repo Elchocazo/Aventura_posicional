@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Header } from './components/Header';
 import { StoryCard } from './components/StoryCard';
 import { PositionalBoard } from './components/PositionalBoard';
@@ -83,19 +83,13 @@ export const App: React.FC = () => {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleToggleSound = () => {
-    const next = !soundEnabled;
-    setSoundEnabled(next);
-    sound.enabled = next;
-  };
-
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setTimerSeconds((prev) => prev + 1), 1000);
-  };
+  }, []);
 
-  const stopTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
-  const resetTimer = () => { stopTimer(); setTimerSeconds(0); startTimer(); };
+  const stopTimer = useCallback(() => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } }, []);
+  const resetTimer = useCallback(() => { stopTimer(); setTimerSeconds(0); startTimer(); }, [startTimer, stopTimer]);
 
   useEffect(() => {
     localStorage.setItem('math_points', points.toString());
@@ -105,8 +99,10 @@ export const App: React.FC = () => {
     localStorage.setItem('math_player_name', playerName);
   }, [points, equippedMascot, equippedAccessory, unlockedItems, playerName]);
 
-  const generateProblem = () => {
+  const generateProblem = useCallback(() => {
     const config = LEVEL_CONFIGS[currentLevel];
+    if (!config) return;
+
     let op = currentMode;
     if (op === 'mix') op = Math.random() > 0.5 ? 'add' : 'sub';
     const raw1 = Math.floor(Math.random() * (config.max1 - config.min1 + 1)) + config.min1;
@@ -125,36 +121,50 @@ export const App: React.FC = () => {
     const d1 = num1.toString().split(''), d2 = num2.toString().split('');
     const all = [...d1, ...d2].sort(() => Math.random() - 0.5);
     setChips(all.map((val, idx) => ({ id: `chip_place_${idx}_${val}`, value: val, used: false })));
-  };
+  }, [currentLevel, currentMode]);
 
-  const resetGameProgress = () => { setCurrentProblemIndex(1); setLives(3); setStreak(0); resetTimer(); generateProblem(); };
+  const resetGameProgress = useCallback(() => {
+    setCurrentProblemIndex(1);
+    setLives(3);
+    setStreak(0);
+    resetTimer();
+    generateProblem();
+  }, [generateProblem, resetTimer]);
+
   const isInitialMountRef = useRef(true);
   const prevConfigRef = useRef({ level: currentLevel, mode: currentMode });
 
   useEffect(() => {
-    try {
-      const savedStr = localStorage.getItem(AUTO_SAVE_KEY);
-      if (savedStr) {
-        const saved: SavedGameState = JSON.parse(savedStr);
-        if (saved && saved.problem) {
-          setCurrentLevel(saved.currentLevel); setCurrentMode(saved.currentMode); setPoints(saved.points);
-          setLives(saved.lives); setStreak(saved.streak); setMaxStreak(saved.maxStreak);
-          setCurrentProblemIndex(saved.currentProblemIndex); setSolvedCount(saved.solvedCount); setTimerSeconds(saved.timerSeconds);
-          setProblem(saved.problem); setGamePhase(saved.gamePhase); setPlacedDigits(saved.placedDigits); setChips(saved.chips);
-          startTimer(); return;
+    const initGame = () => {
+      try {
+        const savedStr = localStorage.getItem(AUTO_SAVE_KEY);
+        if (savedStr) {
+          const saved: SavedGameState = JSON.parse(savedStr);
+          if (saved && saved.problem) {
+            setCurrentLevel(saved.currentLevel); setCurrentMode(saved.currentMode); setPoints(saved.points);
+            setLives(saved.lives); setStreak(saved.streak); setMaxStreak(saved.maxStreak);
+            setCurrentProblemIndex(saved.currentProblemIndex); setSolvedCount(saved.solvedCount); setTimerSeconds(saved.timerSeconds);
+            setProblem(saved.problem); setGamePhase(saved.gamePhase); setPlacedDigits(saved.placedDigits); setChips(saved.chips);
+            startTimer();
+            return;
+          }
         }
+      } catch (e) {
+        console.error("Error restoring game state", e);
       }
-    } catch (e) {}
-    resetGameProgress();
+      resetGameProgress();
+    };
+
+    initGame();
     return () => stopTimer();
-  }, []);
+  }, [resetGameProgress, startTimer, stopTimer]);
 
   useEffect(() => {
     if (isInitialMountRef.current) { isInitialMountRef.current = false; return; }
     if (prevConfigRef.current.level !== currentLevel || prevConfigRef.current.mode !== currentMode) {
       prevConfigRef.current = { level: currentLevel, mode: currentMode }; resetGameProgress();
     }
-  }, [currentLevel, currentMode]);
+  }, [currentLevel, currentMode, resetGameProgress]);
 
   useEffect(() => {
     if (!problem) return;
@@ -293,7 +303,9 @@ export const App: React.FC = () => {
         <SplashScreenOverlay
           onFinish={() => {
             setShowSplash(false);
-            setIsWelcomeOpen(true);
+            if (!problem) {
+              setIsWelcomeOpen(true);
+            }
           }}
         />
       )}
@@ -317,7 +329,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {problem && (
+        {problem ? (
           <>
             <StoryCard icon={problem.story.icon} storyText={problem.story.text} questionText={problem.story.question} currentLevel={currentLevel} currentProblemIndex={currentProblemIndex} totalProblems={totalProblems} />
             <DigitsBank chips={chips} selectedChipId={selectedChipId} onSelectChip={setSelectedChipId} gamePhase={gamePhase} />
@@ -330,6 +342,13 @@ export const App: React.FC = () => {
               <button onClick={handleProvideHint} className="clay-btn bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs sm:text-sm font-black py-2.5 px-3 rounded-2xl">💡 Ayuda</button>
             </div>
           </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+             <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center animate-bounce">
+                <span className="text-4xl">🚀</span>
+             </div>
+             <p className="font-black text-slate-400">Preparando tu aventura...</p>
+          </div>
         )}
       </main>
 

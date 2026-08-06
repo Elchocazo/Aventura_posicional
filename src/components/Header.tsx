@@ -1,7 +1,8 @@
 import React from 'react';
-import { Settings, Flame, Heart, Camera } from 'lucide-react';
+import { Settings, Flame, Heart, Camera, Star } from 'lucide-react';
 
 interface HeaderProps {
+  points: number;
   mascot: string;
   accessory: string;
   lives: number;
@@ -13,6 +14,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  points,
   mascot,
   accessory,
   lives,
@@ -43,9 +45,15 @@ export const Header: React.FC<HeaderProps> = ({
             <h1 className="font-black text-sm sm:text-lg bg-gradient-to-r from-sky-600 to-purple-600 bg-clip-text text-transparent leading-none truncate">
               NumiMates
             </h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate">
-              {playerName || 'Explorador'}
-            </p>
+            <div className="flex items-center gap-1">
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate">
+                {playerName || 'Explorador'}
+              </p>
+              <div className="flex items-center gap-0.5 text-[10px] font-black text-amber-500 bg-amber-50 px-1 rounded-sm">
+                <Star className="w-2.5 h-2.5 fill-amber-500" />
+                <span>{points}</span>
+              </div>
+            </div>
           </div>
         </div>
 
