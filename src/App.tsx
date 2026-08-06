@@ -6,6 +6,7 @@ import { DigitsBank } from './components/DigitsBank';
 import { BottomNav } from './components/BottomNav';
 import { WelcomeModal } from './components/WelcomeModal';
 import { OptionsMenuModal } from './components/OptionsMenuModal';
+import { ProfileDashboard } from './components/ProfileDashboard';
 import { StoreModal } from './components/StoreModal';
 import { TeacherReportModal } from './components/TeacherReportModal';
 import { VictoryModal } from './components/VictoryModal';
@@ -13,7 +14,7 @@ import { QrScannerModal } from './components/QrScannerModal';
 import { WorksheetShareModal } from './components/WorksheetShareModal';
 import { SplashScreenOverlay } from './components/SplashScreenOverlay';
 import { LEVEL_CONFIGS, STORY_THEMES, ALL_COLUMNS } from './data/constants';
-import { OperationMode, GradeLevel, GamePhase, PositionalCol, ProblemData, Chip, StoreItem } from './types';
+import { OperationMode, GradeLevel, GamePhase, PositionalCol, ProblemData, Chip } from './types';
 import { sound } from './utils/sound';
 
 const AUTO_SAVE_KEY = 'math_auto_save_state_v2';
@@ -48,7 +49,11 @@ export const App: React.FC = () => {
   const [isVictoryOpen, setIsVictoryOpen] = useState(false);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const [isWorksheetShareOpen, setIsWorksheetShareOpen] = useState(false);
-  const [printCounter, setPrintCounter] = useState<number>(() => parseInt(localStorage.getItem('math_print_counter') || '1', 10));
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [playerTitle, setPlayerTitle] = useState(() => localStorage.getItem('math_player_title') || 'Aventurero del Cálculo');
+  const [playerTheme, setPlayerTheme] = useState(() => localStorage.getItem('math_player_theme') || 'sky');
+  const [playerMotto, setPlayerMotto] = useState(() => localStorage.getItem('math_player_motto') || '¡Puedo con todo!');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' | 'error' } | null>(null);
 
   const [problem, setProblem] = useState<ProblemData | null>(null);
@@ -269,10 +274,71 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      <BottomNav activeTab="game" onChangeTab={(tab) => { if (tab === 'levels') setIsOptionsOpen(true); if (tab === 'store') setIsStoreOpen(true); if (tab === 'report') setIsTeacherReportOpen(true); if (tab === 'profile') setIsWelcomeOpen(true); }} />
+      <BottomNav
+        activeTab="game"
+        onChangeTab={(tab) => {
+          if (tab === 'levels') setIsOptionsOpen(true);
+          if (tab === 'store') setIsStoreOpen(true);
+          if (tab === 'report') setIsTeacherReportOpen(true);
+          if (tab === 'profile') setIsProfileOpen(true);
+        }}
+      />
 
+      {/* WelcomeModal: solo al primer inicio */}
       <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} onUpdatePlayerName={setPlayerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={setCurrentLevel} onStartGame={resetGameProgress} />
-      <OptionsMenuModal isOpen={isOptionsOpen} onClose={() => setIsOptionsOpen(false)} currentLevel={currentLevel} currentMode={currentMode} onChangeLevel={setCurrentLevel} onChangeMode={setCurrentMode} />
+
+      {/* Niveles/Opciones: ajustes del juego */}
+      <OptionsMenuModal
+        isOpen={isOptionsOpen}
+        onClose={() => setIsOptionsOpen(false)}
+        soundEnabled={soundEnabled}
+        onToggleSound={() => { const n = !soundEnabled; setSoundEnabled(n); sound.enabled = n; }}
+        currentLevel={currentLevel}
+        currentMode={currentMode}
+        onChangeLevelTab={() => { setIsOptionsOpen(false); }}
+        onResetStats={() => { setSolvedCount(0); setStreak(0); setMaxStreak(0); setTimerSeconds(0); }}
+        onOpenWelcome={() => { setIsOptionsOpen(false); setIsWelcomeOpen(true); }}
+      />
+
+      {/* Perfil: dashboard del jugador */}
+      {isProfileOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm overflow-y-auto p-3 no-print">
+          <div className="max-w-lg mx-auto pt-2 pb-24">
+            <div className="flex justify-end mb-2">
+              <button onClick={() => setIsProfileOpen(false)} className="p-2 bg-white rounded-2xl shadow-lg text-slate-500 font-black">✕ Cerrar</button>
+            </div>
+            <ProfileDashboard
+              playerName={playerName}
+              playerTitle={playerTitle}
+              playerTheme={playerTheme}
+              playerMotto={playerMotto}
+              equippedMascot={equippedMascot}
+              equippedAccessory={equippedAccessory}
+              unlockedItems={unlockedItems}
+              points={points}
+              streak={streak}
+              maxStreak={maxStreak}
+              solvedCount={solvedCount}
+              timerSeconds={timerSeconds}
+              currentLevel={currentLevel}
+              currentMode={currentMode}
+              onUpdateProfile={(name, title, theme, motto) => {
+                setPlayerName(name); setPlayerTitle(title); setPlayerTheme(theme); setPlayerMotto(motto);
+                localStorage.setItem('math_player_title', title);
+                localStorage.setItem('math_player_theme', theme);
+                localStorage.setItem('math_player_motto', motto);
+              }}
+              onEquipMascot={setEquippedMascot}
+              onEquipAccessory={setEquippedAccessory}
+              onOpenStore={() => { setIsProfileOpen(false); setIsStoreOpen(true); }}
+              onOpenReport={() => { setIsProfileOpen(false); setIsTeacherReportOpen(true); }}
+              onStartGame={() => { setIsProfileOpen(false); resetGameProgress(); }}
+              onChangeLevelTab={() => { setIsProfileOpen(false); setIsOptionsOpen(true); }}
+            />
+          </div>
+        </div>
+      )}
+
       <StoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} points={points} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} onEquipItem={(i) => i.category === 'mascot' ? setEquippedMascot(i.id) : setEquippedAccessory(i.id)} onUnlockItem={(i) => { setPoints(p => p - i.cost); setUnlockedItems(u => [...u, i.id]); }} />
       <TeacherReportModal
         isOpen={isTeacherReportOpen}
