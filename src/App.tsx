@@ -42,11 +42,11 @@ export const App: React.FC = () => {
   const [solvedCount, setSolvedCount] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const [equippedMascot, setEquippedMascot] = useState<string>(() => localStorage.getItem('math_mascot') || '🦉');
+  const [equippedMascot, setEquippedMascot] = useState<string>(() => localStorage.getItem('math_mascot') || '🐶');
   const [equippedAccessory, setEquippedAccessory] = useState<string>(() => localStorage.getItem('math_accessory') || '🎓');
   const [unlockedItems, setUnlockedItems] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('math_unlocked') || '["🦉", "🎓"]'); }
-    catch { return ['🦉', '🎓']; }
+    try { return JSON.parse(localStorage.getItem('math_unlocked') || '["🐶", "🎓"]'); }
+    catch { return ['🐶', '🎓']; }
   });
 
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('math_player_name') || 'Explorador');
