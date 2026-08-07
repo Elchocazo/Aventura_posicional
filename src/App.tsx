@@ -233,7 +233,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-sky-50 text-slate-900 pb-24 flex flex-col items-center w-full overflow-x-hidden">
+    <div className="min-h-screen h-full w-full bg-sky-50 text-slate-900 pb-28 flex flex-col items-center overflow-y-auto overflow-x-hidden touch-pan-y">
       {showSplash && <SplashScreenOverlay onFinish={handleFinishSplash} />}
 
       <Header
@@ -368,12 +368,20 @@ export const App: React.FC = () => {
       <VictoryModal isOpen={isVictoryOpen} onClose={() => { setIsVictoryOpen(false); resetGameProgress(); }} onGoToStore={() => { setIsVictoryOpen(false); setIsStoreOpen(true); }} timeSeconds={timerSeconds} pointsEarned={500} />
       <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onAwardPoints={(a) => setPoints(p => p + a)} />
 
-      {/* Modal para Compartir / Imprimir Ficha */}
+      {/* Modal para Compartir / Descargar Ficha Secuencial */}
       <WorksheetShareModal
         isOpen={isWorksheetShareOpen}
         onClose={() => setIsWorksheetShareOpen(false)}
         gradeLevel={currentLevel}
         currentMode={currentMode}
+        printCounter={printCounter}
+        onIncrementPrintCounter={() => {
+          setPrintCounter(c => {
+            const next = c + 1;
+            localStorage.setItem('math_print_counter', next.toString());
+            return next;
+          });
+        }}
         points={points}
         onSpendPoints={(amt) => setPoints(p => Math.max(0, p - amt))}
         onAwardPoints={(amt) => setPoints(p => p + amt)}

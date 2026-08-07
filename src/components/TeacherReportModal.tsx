@@ -22,7 +22,7 @@ export const TeacherReportView: React.FC<TeacherReportViewProps> = ({
         <span className="text-3xl">🎓</span>
         <div>
           <h2 className="font-black text-lg sm:text-xl text-indigo-900 leading-none">
-            Reporte Docentes y Padres
+            Progreso de Aprendizaje
           </h2>
           <p className="text-xs font-bold text-slate-500 mt-0.5">
             Resumen de desempeño académico y hoja de trabajo imprimible

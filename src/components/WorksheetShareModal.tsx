@@ -19,6 +19,8 @@ interface WorksheetShareModalProps {
   onClose: () => void;
   gradeLevel: GradeLevel;
   currentMode: GameMode;
+  printCounter: number;
+  onIncrementPrintCounter: () => void;
   points: number;
   onSpendPoints: (amount: number) => void;
   onAwardPoints: (amount: number) => void;
@@ -40,11 +42,12 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   onClose,
   gradeLevel,
   currentMode,
+  printCounter,
+  onIncrementPrintCounter,
   points,
   onSpendPoints,
   onAwardPoints,
 }) => {
-  const [selectedSheetNum, setSelectedSheetNum] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
@@ -71,12 +74,15 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   const levelConfig = LEVEL_CONFIGS[gradeLevel];
   const modeLabel = currentMode === 'add' ? 'Sumas ➕' : currentMode === 'sub' ? 'Restas ➖' : 'Mixto 🔀';
   const modeSlug = currentMode === 'add' ? 'suma' : currentMode === 'sub' ? 'resta' : 'mixta';
-  const paddedNum = String(selectedSheetNum).padStart(3, '0');
+  
+  // Asegurar que el número de ficha secuencial esté entre 1 y 50
+  const sheetNum = ((printCounter - 1) % 50) + 1;
+  const paddedNum = String(sheetNum).padStart(3, '0');
   const pdfFileName = `ficha${gradeLevel}-${paddedNum}.pdf`;
   const relativePdfPath = `./fichas/grado${gradeLevel}${modeSlug}/${pdfFileName}`;
 
-  const shareTitle = `🦉 Ficha de Ejercicios N° ${selectedSheetNum} - ${levelConfig.label}`;
-  const shareText = `🦉 *NumiMates - Ficha de Ejercicios N° ${selectedSheetNum}*
+  const shareTitle = `🦉 Ficha de Ejercicios N° ${sheetNum} - ${levelConfig.label}`;
+  const shareText = `🦉 *NumiMates - Ficha de Ejercicios N° ${sheetNum}*
 Grado: ${levelConfig.label} (${modeLabel})
 12 Ejercicios con Código QR para Calificar.`;
 
@@ -84,13 +90,13 @@ Grado: ${levelConfig.label} (${modeLabel})
   const handleShareWorksheetPdf = async () => {
     if (!isFreeAvailable && points < EXTRA_COST) {
       sound.playError();
-      alert(`⚠️ Has alcanzado el límite de 3 fichas gratis semanales.\nNecesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para desbloquear esta ficha extra.\n¡Resuelve ejercicios o ve videos para ganar estrellas!`);
+      alert(`⚠️ Has alcanzado el límite de 3 fichas gratis semanales.\nNecesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para desbloquear la Ficha N° ${sheetNum}.\n¡Resuelve ejercicios o ve videos para ganar estrellas!`);
       return;
     }
 
     sound.playSelect();
     setIsLoading(true);
-    setStatusMsg('📄 Preparando archivo PDF para el celular...');
+    setStatusMsg(`📄 Preparando Ficha N° ${sheetNum} para tu celular...`);
 
     try {
       // 1. Cargar el PDF de la carpeta public/fichas/
@@ -118,10 +124,13 @@ Grado: ${levelConfig.label} (${modeLabel})
         title: shareTitle,
         text: shareText,
         url: savedFile.uri,
-        dialogTitle: 'Compartir Ficha PDF en WhatsApp / Celular',
+        dialogTitle: `Compartir Ficha N° ${sheetNum} en WhatsApp / Celular`,
       });
 
       sound.playSuccess();
+
+      // Avanzar secuencialmente a la siguiente ficha para la próxima vez
+      onIncrementPrintCounter();
 
       // Descontar uso gratis o estrellas
       if (isFreeAvailable) {
@@ -141,6 +150,7 @@ Grado: ${levelConfig.label} (${modeLabel})
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        onIncrementPrintCounter();
       } catch (fallbackErr) {
         console.error('Fallback download failed:', fallbackErr);
       }
@@ -221,25 +231,26 @@ Grado: ${levelConfig.label} (${modeLabel})
           </p>
         </div>
 
-        {/* Selección de Ficha N° 1 a 50 */}
-        <div className="clay-card-purple p-4 space-y-3">
-          <div className="font-black flex items-center gap-1.5 text-xs uppercase tracking-wider text-purple-900">
-            <FileText className="w-4 h-4 text-purple-600" />
-            <span>Selecciona el número de Ficha:</span>
+        {/* Ficha Secuencial Actual (Fichas seguidas automáticamente) */}
+        <div className="clay-card-purple p-4 space-y-2">
+          <div className="font-black flex items-center justify-between text-xs uppercase tracking-wider text-purple-900">
+            <span className="flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-purple-600" />
+              <span>Siguiente Ficha en Secuencia:</span>
+            </span>
+            <span className="bg-purple-200 text-purple-950 font-black px-2.5 py-0.5 rounded-full text-xs">
+              N° {sheetNum} de 50
+            </span>
           </div>
 
-          <select
-            value={selectedSheetNum}
-            onChange={(e) => setSelectedSheetNum(Number(e.target.value))}
-            disabled={isLoading}
-            className="w-full p-3 bg-white text-slate-800 font-extrabold text-xs sm:text-sm rounded-2xl border-2 border-purple-300 shadow-xs outline-none cursor-pointer"
-          >
-            {Array.from({ length: 50 }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                📄 Ficha N° {n} (Grado {gradeLevel} - {modeLabel})
-              </option>
-            ))}
-          </select>
+          <div className="p-3 bg-white/90 rounded-2xl border-2 border-purple-200 flex items-center justify-between">
+            <div className="font-extrabold text-xs text-purple-950">
+              📄 {pdfFileName}
+            </div>
+            <span className="text-[11px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-xl">
+              {levelConfig.label}
+            </span>
+          </div>
         </div>
 
         {/* Mensaje de estado al procesar el archivo */}

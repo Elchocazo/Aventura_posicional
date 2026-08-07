@@ -14,7 +14,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onChangeTab }) 
     { id: 'levels' as TabType, label: 'Niveles', icon: Layers },
     { id: 'profile' as TabType, label: 'Perfil', icon: User },
     { id: 'store' as TabType, label: 'Tienda', icon: ShoppingBag },
-    { id: 'report' as TabType, label: 'Reporte', icon: GraduationCap },
+    { id: 'report' as TabType, label: 'Progreso', icon: GraduationCap },
   ];
 
   return (

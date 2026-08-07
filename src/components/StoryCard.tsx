@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { Volume2, HelpCircle, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
+import React from 'react';
+import { HelpCircle, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
 import { ProblemData, GamePhase } from '../types';
-import { sound } from '../utils/sound';
 
 interface StoryCardProps {
   problem: ProblemData;
@@ -16,15 +15,6 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   gradeLabel,
   gamePhase,
 }) => {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  const handleReadAloud = () => {
-    sound.playSelect();
-    setIsSpeaking(true);
-    sound.speak(`${problem.story.text}. Pregunta: ${problem.story.question}`);
-    setTimeout(() => setIsSpeaking(false), 4000);
-  };
-
   // Format short grade label
   const shortGrade = gradeLabel.split(' ')[0] || gradeLabel;
 
@@ -36,21 +26,10 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-[0_3px_0_#0369a1,inset_0_2px_3px_rgba(255,255,255,0.4)]">
             📖 Problema #{currentProblemIndex}
           </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-2xl text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+            {shortGrade}
+          </span>
         </div>
-
-        {/* Read Aloud Button - Compact & Single-line */}
-        <button
-          onClick={handleReadAloud}
-          className={`px-3 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 whitespace-nowrap transition-all active:scale-95 shadow-xs ${
-            isSpeaking
-              ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-300 animate-bounce'
-              : 'clay-btn-amber text-amber-950'
-          }`}
-          title="Escuchar problema en voz alta"
-        >
-          <Volume2 className="w-4 h-4 text-amber-900 shrink-0" />
-          <span>Escuchar</span>
-        </button>
       </div>
 
       {/* Story Card Content */}
