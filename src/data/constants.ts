@@ -158,19 +158,33 @@ export const STORY_THEMES: StoryTheme[] = [
 ];
 
 export const STORE_MASCOTS: StoreItem[] = [
+  { id: '🐶', name: 'Perrito Numi', cost: 0, icon: '🐶', category: 'mascot' },
   { id: '🦉', name: 'Búho Sabio', cost: 0, icon: '🦉', category: 'mascot' },
-  { id: '🦄', name: 'Unicornio Mágico', cost: 150, icon: '🦄', category: 'mascot' },
+  { id: '🐱', name: 'Gatito Ninja', cost: 100, icon: '🐱', category: 'mascot' },
+  { id: '🦊', name: 'Zorro Astuto', cost: 150, icon: '🦊', category: 'mascot' },
+  { id: '🦄', name: 'Unicornio Mágico', cost: 200, icon: '🦄', category: 'mascot' },
+  { id: '🐰', name: 'Conejo Estelar', cost: 250, icon: '🐰', category: 'mascot' },
   { id: '🚀', name: 'Cohete Veloz', cost: 300, icon: '🚀', category: 'mascot' },
-  { id: '🤖', name: 'Robot Cómputo', cost: 500, icon: '🤖', category: 'mascot' },
-  { id: '🦁', name: 'León Rey', cost: 800, icon: '🦁', category: 'mascot' },
-  { id: '🐼', name: 'Panda Genio', cost: 1000, icon: '🐼', category: 'mascot' },
-  { id: '🐲', name: 'Dragón Fuego', cost: 1500, icon: '🐲', category: 'mascot' },
+  { id: '🤖', name: 'Robot Cómputo', cost: 400, icon: '🤖', category: 'mascot' },
+  { id: '🐸', name: 'Rana Matema', cost: 450, icon: '🐸', category: 'mascot' },
+  { id: '🦁', name: 'León Rey', cost: 500, icon: '🦁', category: 'mascot' },
+  { id: '🐼', name: 'Panda Genio', cost: 600, icon: '🐼', category: 'mascot' },
+  { id: '🐯', name: 'Tigre Relámpago', cost: 700, icon: '🐯', category: 'mascot' },
+  { id: '🐲', name: 'Dragón Fuego', cost: 850, icon: '🐲', category: 'mascot' },
+  { id: '🦕', name: 'Dino T-Rex', cost: 1000, icon: '🦕', category: 'mascot' },
+  { id: '👽', name: 'Alien Sabio', cost: 1200, icon: '👽', category: 'mascot' },
 ];
 
 export const STORE_ACCESSORIES: StoreItem[] = [
   { id: '🎓', name: 'Birrete Sabio', cost: 0, icon: '🎓', category: 'accessory' },
-  { id: '👑', name: 'Corona Real', cost: 200, icon: '👑', category: 'accessory' },
-  { id: '🎩', name: 'Sombrero Mago', cost: 350, icon: '🎩', category: 'accessory' },
-  { id: '🥽', name: 'Gafas de Sol', cost: 600, icon: '🥽', category: 'accessory' },
-  { id: '🎀', name: 'Moño Brillante', cost: 850, icon: '🎀', category: 'accessory' },
+  { id: '👑', name: 'Corona Real', cost: 150, icon: '👑', category: 'accessory' },
+  { id: '🎩', name: 'Sombrero Mago', cost: 250, icon: '🎩', category: 'accessory' },
+  { id: '🥽', name: 'Gafas de Sol', cost: 350, icon: '🥽', category: 'accessory' },
+  { id: '🎀', name: 'Moño Coquette', cost: 400, icon: '🎀', category: 'accessory' },
+  { id: '🎒', name: 'Mochila Pro', cost: 500, icon: '🎒', category: 'accessory' },
+  { id: '🎧', name: 'Audífonos Gamer', cost: 650, icon: '🎧', category: 'accessory' },
+  { id: '🦸', name: 'Capa Superhéroe', cost: 800, icon: '🦸', category: 'accessory' },
+  { id: '🪄', name: 'Varita Mágica', cost: 950, icon: '🪄', category: 'accessory' },
+  { id: '🏆', name: 'Trofeo Campeón', cost: 1200, icon: '🏆', category: 'accessory' },
 ];
+
