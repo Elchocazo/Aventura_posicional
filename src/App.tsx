@@ -179,27 +179,54 @@ export const App: React.FC = () => {
   const handleCellClick = (row: string, col: PositionalCol) => {
     const key = `${row}_${col}`;
     const currentValue = placedDigits[key];
+
     if (selectedChipId) {
-      const chip = chips.find(c => c.id === selectedChipId);
-      if (!chip) return;
-      if (row === 'carry' && currentValue && currentValue.length === 1) {
-        setPlacedDigits(prev => ({ ...prev, [key]: currentValue + chip.value }));
+      // Obtener el valor numérico de la ficha (sea de colocación o de resultado res_digit_0..9)
+      let chipValue = '';
+      if (selectedChipId.startsWith('res_digit_')) {
+        chipValue = selectedChipId.replace('res_digit_', '');
       } else {
-        if (currentValue) setChips(prev => prev.map(c => c.value === currentValue.slice(-1) && c.used ? { ...c, used: false } : c));
-        setPlacedDigits(prev => ({ ...prev, [key]: chip.value }));
+        const found = chips.find(c => c.id === selectedChipId);
+        if (found) chipValue = found.value;
       }
-      setChips(prev => prev.map(c => c.id === selectedChipId ? { ...c, used: true } : c));
+
+      if (!chipValue) return;
+
+      if (row === 'carry' && currentValue && currentValue.length === 1) {
+        setPlacedDigits(prev => ({ ...prev, [key]: currentValue + chipValue }));
+      } else {
+        if (currentValue && !selectedChipId.startsWith('res_digit_')) {
+          setChips(prev => prev.map(c => c.value === currentValue.slice(-1) && c.used ? { ...c, used: false } : c));
+        }
+        setPlacedDigits(prev => ({ ...prev, [key]: chipValue }));
+      }
+
+      if (!selectedChipId.startsWith('res_digit_')) {
+        setChips(prev => prev.map(c => c.id === selectedChipId ? { ...c, used: true } : c));
+      }
+
       setSelectedChipId(null);
       sound.playPop();
     } else if (currentValue) {
-      setPlacedDigits(prev => { const n = { ...prev }; delete n[key]; return n; });
-      setChips(prev => {
-        let restored = false;
-        return prev.map(c => {
-          if (!restored && c.used && c.value === currentValue.slice(-1)) { restored = true; return { ...c, used: false }; }
-          return c;
-        });
+      // Si se toca una casilla que ya tiene un valor (para borrarlo)
+      setPlacedDigits(prev => {
+        const n = { ...prev };
+        delete n[key];
+        return n;
       });
+
+      if (!key.startsWith('result_')) {
+        setChips(prev => {
+          let restored = false;
+          return prev.map(c => {
+            if (!restored && c.used && c.value === currentValue.slice(-1)) {
+              restored = true;
+              return { ...c, used: false };
+            }
+            return c;
+          });
+        });
+      }
       sound.playSelect();
     }
   };
