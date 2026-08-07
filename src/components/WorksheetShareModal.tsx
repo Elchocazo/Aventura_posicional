@@ -99,6 +99,17 @@ Grado: ${levelConfig.label} (${modeLabel})
     onClose();
   };
 
+  const [selectedSheetNum, setSelectedSheetNum] = useState<number>(1);
+
+  const modeSlug = currentMode === 'add' ? 'suma' : currentMode === 'sub' ? 'resta' : 'mixta';
+  const paddedNum = String(selectedSheetNum).padStart(3, '0');
+  const pdfUrl = `./fichas/grado${gradeLevel}${modeSlug}/ficha${gradeLevel}-${paddedNum}.pdf`;
+
+  const handleOpenPdf = () => {
+    sound.playSelect();
+    window.open(pdfUrl, '_blank');
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print overflow-y-auto animate-fadeIn">
       <div className="relative max-w-md w-full clay-card p-5 sm:p-6 text-slate-800 space-y-4 my-auto max-h-[90vh] overflow-y-auto">
@@ -117,42 +128,59 @@ Grado: ${levelConfig.label} (${modeLabel})
           </div>
           <div>
             <h2 className="font-black text-lg sm:text-xl text-emerald-950 leading-tight">
-              Imprimir o Compartir Ficha
+              Imprimir o Descargar Ficha
             </h2>
             <p className="text-xs font-bold text-slate-500 mt-0.5">
-              Ficha N° #{printCounter} • Grado: {levelConfig.label}
+              Grado: {levelConfig.label} • {modeLabel}
             </p>
           </div>
         </div>
 
-        {/* Worksheet Summary Box */}
-        <div className="clay-card-sky p-3.5 space-y-1.5 text-sky-950 text-xs">
-          <div className="font-black flex items-center gap-1.5 text-sm">
-            <FileText className="w-4 h-4 text-sky-600" />
-            <span>Resumen de la Ficha</span>
+        {/* PDF Direct Selection Box */}
+        <div className="clay-card-purple p-3.5 space-y-2">
+          <div className="font-black flex items-center gap-1.5 text-xs uppercase tracking-wider text-purple-900">
+            <Download className="w-4 h-4 text-purple-600" />
+            <span>Descargar PDF de Biblioteca (Grado {gradeLevel} - {modeLabel})</span>
           </div>
-          <p className="font-bold">
-            Contiene 12 ejercicios de cálculo en cuadrícula con Código QR de autocorrección mediante cámara con Inteligencia Artificial.
-          </p>
+
+          <div className="flex items-center gap-2 pt-1">
+            <select
+              value={selectedSheetNum}
+              onChange={(e) => setSelectedSheetNum(Number(e.target.value))}
+              className="flex-1 p-2 bg-white text-slate-800 font-bold text-xs rounded-xl border-2 border-purple-200 shadow-xs"
+            >
+              {Array.from({ length: 50 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  Ficha N° {n} (grado{gradeLevel}{modeSlug}/ficha{gradeLevel}-{String(n).padStart(3, '0')}.pdf)
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={handleOpenPdf}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Abrir PDF</span>
+            </button>
+          </div>
         </div>
 
         {/* Share Options Grid */}
         <div className="space-y-2.5 pt-1">
-          {/* Native Web Share Sheet (Cellular / Mobile) */}
-          {typeof navigator !== 'undefined' && 'share' in navigator && (
-            <button
-              onClick={handleNativeShare}
-              className="w-full py-3.5 clay-btn-amber font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md active:scale-98"
-            >
-              <Share2 className="w-4 h-4 shrink-0" />
-              <span>Compartir en otras Aplicaciones</span>
-            </button>
-          )}
+          {/* Direct Print / Save as PDF */}
+          <button
+            onClick={handleTriggerPrint}
+            className="w-full py-3.5 clay-btn-sky font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md"
+          >
+            <Printer className="w-4 h-4 text-white shrink-0" />
+            <span>Imprimir Ficha Generada (con QR) 🖨️</span>
+          </button>
 
           {/* WhatsApp Direct */}
           <button
             onClick={handleWhatsAppShare}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
           >
             <Send className="w-4 h-4 fill-white shrink-0" />
             <span>Enviar por WhatsApp</span>
@@ -161,7 +189,7 @@ Grado: ${levelConfig.label} (${modeLabel})
           {/* Gmail / Mail */}
           <button
             onClick={handleGmailShare}
-            className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+            className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
           >
             <Mail className="w-4 h-4 shrink-0" />
             <span>Enviar por Correo (Gmail)</span>
@@ -170,7 +198,7 @@ Grado: ${levelConfig.label} (${modeLabel})
           {/* Copy Message / Link */}
           <button
             onClick={handleCopyText}
-            className="w-full py-3 clay-btn-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 border-2 border-slate-200"
+            className="w-full py-2.5 clay-btn-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 border-2 border-slate-200"
           >
             {copied ? (
               <>
@@ -184,17 +212,9 @@ Grado: ${levelConfig.label} (${modeLabel})
               </>
             )}
           </button>
-
-          {/* Direct Print / Save as PDF */}
-          <button
-            onClick={handleTriggerPrint}
-            className="w-full py-3.5 clay-btn-purple font-black text-xs sm:text-sm flex items-center justify-center gap-2 mt-2 shadow-md"
-          >
-            <Printer className="w-4 h-4 text-white shrink-0" />
-            <span>Imprimir / Descargar PDF</span>
-          </button>
         </div>
       </div>
     </div>
   );
 };
+

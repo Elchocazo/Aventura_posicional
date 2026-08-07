@@ -351,6 +351,30 @@ export const App: React.FC = () => {
       />
       <VictoryModal isOpen={isVictoryOpen} onClose={() => { setIsVictoryOpen(false); resetGameProgress(); }} onGoToStore={() => { setIsVictoryOpen(false); setIsStoreOpen(true); }} timeSeconds={timerSeconds} pointsEarned={500} />
       <QrScannerModal isOpen={isQrScannerOpen} onClose={() => setIsQrScannerOpen(false)} onAwardPoints={(a) => setPoints(p => p + a)} />
+
+      {/* Modal para Compartir / Imprimir Ficha */}
+      <WorksheetShareModal
+        isOpen={isWorksheetShareOpen}
+        onClose={() => setIsWorksheetShareOpen(false)}
+        gradeLevel={currentLevel}
+        currentMode={currentMode}
+        printCounter={printCounter}
+        onPrint={() => {
+          setPrintCounter(c => {
+            const next = c + 1;
+            localStorage.setItem('math_print_counter', next.toString());
+            return next;
+          });
+          setTimeout(() => window.print(), 200);
+        }}
+      />
+
+      {/* Componente imprimible oculto que solo aparece al llamar a window.print() */}
+      <WorksheetPrintable
+        gradeLevel={currentLevel}
+        currentMode={currentMode}
+        printCounter={printCounter}
+      />
     </div>
   );
 };
