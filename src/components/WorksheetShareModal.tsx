@@ -75,10 +75,10 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   const modeLabel = currentMode === 'add' ? 'Sumas ➕' : currentMode === 'sub' ? 'Restas ➖' : 'Mixto 🔀';
   const modeSlug = currentMode === 'add' ? 'suma' : currentMode === 'sub' ? 'resta' : 'mixta';
   
-  // Asegurar que el número de ficha secuencial esté entre 1 y 50
   const sheetNum = ((printCounter - 1) % 50) + 1;
   const paddedNum = String(sheetNum).padStart(3, '0');
   const pdfFileName = `ficha${gradeLevel}-${paddedNum}.pdf`;
+  const rawPdfUrl = `https://raw.githubusercontent.com/Elchocazo/Aventura_posicional/main/public/fichas/grado${gradeLevel}${modeSlug}/${pdfFileName}`;
   const relativePdfPath = `./fichas/grado${gradeLevel}${modeSlug}/${pdfFileName}`;
 
   const shareTitle = `🦉 Ficha de Ejercicios N° ${sheetNum} - ${levelConfig.label}`;
@@ -86,7 +86,7 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
 Grado: ${levelConfig.label} (${modeLabel})
 12 Ejercicios con Código QR para Calificar.`;
 
-  // PROCESO PROFUNDO: Leer PDF local de los assets -> Escribir en Almacenamiento Celular -> Abrir Menú Nativo Android con PDF Adjunto
+  // PROCESO PROFUNDO: Leer PDF -> Escribir en Almacenamiento Celular -> Abrir Menú Nativo Android con PDF Adjunto
   const handleShareWorksheetPdf = async () => {
     if (!isFreeAvailable && points < EXTRA_COST) {
       sound.playError();
@@ -96,14 +96,25 @@ Grado: ${levelConfig.label} (${modeLabel})
 
     sound.playSelect();
     setIsLoading(true);
-    setStatusMsg(`📄 Preparando Ficha N° ${sheetNum} para tu celular...`);
+    setStatusMsg(`📄 Descargando Ficha N° ${sheetNum}...`);
 
     try {
-      // 1. Cargar el PDF de la carpeta public/fichas/
-      const response = await fetch(relativePdfPath);
-      if (!response.ok) {
-        throw new Error(`No se encontró el archivo PDF: ${relativePdfPath}`);
+      // 1. Cargar el PDF (primero desde el servidor en la nube para mantener la app súper liviana)
+      let response: Response | null = null;
+      try {
+        response = await fetch(rawPdfUrl);
+      } catch (e) {
+        console.log('Online fetch failed, trying local fallback');
       }
+
+      if (!response || !response.ok) {
+        response = await fetch(relativePdfPath);
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(`No se pudo descargar la ficha PDF N° ${sheetNum}`);
+      }
+
       const buffer = await response.arrayBuffer();
       const base64Data = arrayBufferToBase64(buffer);
 
