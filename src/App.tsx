@@ -342,7 +342,17 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      <StoreModal isOpen={isStoreOpen} onClose={() => setIsStoreOpen(false)} points={points} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} unlockedItems={unlockedItems} onEquipItem={(i) => i.category === 'mascot' ? setEquippedMascot(i.id) : setEquippedAccessory(i.id)} onUnlockItem={(i) => { setPoints(p => p - i.cost); setUnlockedItems(u => [...u, i.id]); }} />
+      <StoreModal
+        isOpen={isStoreOpen}
+        onClose={() => setIsStoreOpen(false)}
+        points={points}
+        equippedMascot={equippedMascot}
+        equippedAccessory={equippedAccessory}
+        unlockedItems={unlockedItems}
+        onEquipItem={(i) => i.category === 'mascot' ? setEquippedMascot(i.id) : setEquippedAccessory(i.id)}
+        onUnlockItem={(i) => { setPoints(p => p - i.cost); setUnlockedItems(u => [...u, i.id]); }}
+        onAwardPoints={(a) => setPoints(p => p + a)}
+      />
       <TeacherReportModal
         isOpen={isTeacherReportOpen}
         onClose={() => setIsTeacherReportOpen(false)}

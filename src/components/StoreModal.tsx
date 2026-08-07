@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Star, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Star, CheckCircle, Sparkles } from 'lucide-react';
 import { STORE_ACCESSORIES, STORE_MASCOTS } from '../data/constants';
 import { StoreItem } from '../types';
 import { sound } from '../utils/sound';
@@ -11,6 +11,7 @@ interface StoreViewProps {
   unlockedItems: string[];
   onEquipItem: (item: StoreItem) => void;
   onUnlockItem: (item: StoreItem) => void;
+  onAwardPoints?: (amount: number) => void;
 }
 
 export const StoreView: React.FC<StoreViewProps> = ({
@@ -20,7 +21,31 @@ export const StoreView: React.FC<StoreViewProps> = ({
   unlockedItems,
   onEquipItem,
   onUnlockItem,
+  onAwardPoints,
 }) => {
+  const [isAdLoading, setIsAdLoading] = useState(false);
+
+  const handleBuyStarPack = (stars: number, priceCop: string, name: string) => {
+    sound.playSuccess();
+    if (onAwardPoints) {
+      onAwardPoints(stars);
+    }
+    alert(`🎉 ¡Compra simulada exitosa!\nHas adquirido: ${name} (+${stars} ⭐) por ${priceCop}.\n(En Google Play este botón abrirá la pasarela de pago real).`);
+  };
+
+  const handleWatchVideoAd = () => {
+    sound.playSelect();
+    setIsAdLoading(true);
+    setTimeout(() => {
+      if (onAwardPoints) {
+        onAwardPoints(100);
+      }
+      sound.playSuccess();
+      setIsAdLoading(false);
+      alert('🎉 ¡Ganaste +100 ⭐ por ver el video de recompensa!');
+    }, 2500);
+  };
+
   const renderGrid = (items: StoreItem[], category: 'mascot' | 'accessory') => (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-3">
       {items.map((item) => {
@@ -96,6 +121,73 @@ export const StoreView: React.FC<StoreViewProps> = ({
         <span className="inline-flex items-center gap-1 font-black text-base text-amber-950">
           <Star className="w-5 h-5 fill-amber-500 text-amber-500" /> {points.toLocaleString()}
         </span>
+      </div>
+
+      {/* SECCIÓN MONETIZACIÓN: CONSEGUIR MÁS ESTRELLAS & COMPRAS IN-APP */}
+      <div className="clay-card-purple p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="font-black text-xs uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            <span>Consigue Más Estrellas ⭐</span>
+          </span>
+          <span className="text-[10px] font-black bg-purple-200 text-purple-900 px-2 py-0.5 rounded-full">
+            Google Play Billing
+          </span>
+        </div>
+
+        {/* Video Recompensa Gratis */}
+        <button
+          onClick={handleWatchVideoAd}
+          disabled={isAdLoading}
+          className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+        >
+          <span>{isAdLoading ? '📺 Viendo anuncio... (+100 ⭐)' : '📺 Ver Video Recompensa (+100 ⭐ GRATIS)'}</span>
+        </button>
+
+        {/* Grilla de Paquetes de Estrellas en Pesos Colombianos */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+          {/* Paquete 1: 500 Estrellas */}
+          <button
+            onClick={() => handleBuyStarPack(500, '$5.000 COP', 'Paquete Ficha (500 ⭐)')}
+            className="p-3 bg-white hover:bg-purple-50 border-2 border-purple-200 rounded-2xl flex flex-col items-center justify-between text-center transition-all active:scale-95 shadow-2xs"
+          >
+            <span className="text-xl">⭐ 500</span>
+            <span className="font-black text-xs text-purple-950 my-1">Paquete Ficha</span>
+            <span className="px-3 py-1 bg-purple-600 text-white font-black text-xs rounded-xl w-full">
+              $5.000 COP
+            </span>
+          </button>
+
+          {/* Paquete 2: 2.500 Estrellas (POPULAR) */}
+          <button
+            onClick={() => handleBuyStarPack(2500, '$19.900 COP', 'Paquete Súper (2.500 ⭐)')}
+            className="p-3 bg-gradient-to-b from-amber-50 to-orange-50 border-2 border-amber-400 rounded-2xl flex flex-col items-center justify-between text-center transition-all active:scale-95 shadow-xs relative"
+          >
+            <span className="absolute -top-2.5 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-2xs">
+              🔥 ¡Popular!
+            </span>
+            <span className="text-xl mt-1">⭐ 2.500</span>
+            <span className="font-black text-xs text-amber-950 my-1">Paquete Súper</span>
+            <span className="px-3 py-1 bg-amber-500 text-amber-950 font-black text-xs rounded-xl w-full">
+              $19.900 COP
+            </span>
+          </button>
+
+          {/* Paquete 3: 6.000 Estrellas (MEJOR VALOR) */}
+          <button
+            onClick={() => handleBuyStarPack(6000, '$39.900 COP', 'Paquete Maestro (6.000 ⭐)')}
+            className="p-3 bg-gradient-to-b from-emerald-50 to-teal-50 border-2 border-emerald-400 rounded-2xl flex flex-col items-center justify-between text-center transition-all active:scale-95 shadow-xs relative"
+          >
+            <span className="absolute -top-2.5 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-2xs">
+              👑 Mejor Valor
+            </span>
+            <span className="text-xl mt-1">⭐ 6.000</span>
+            <span className="font-black text-xs text-emerald-950 my-1">Paquete Maestro</span>
+            <span className="px-3 py-1 bg-emerald-600 text-white font-black text-xs rounded-xl w-full">
+              $39.900 COP
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Mascot Section */}
