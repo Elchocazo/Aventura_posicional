@@ -18,6 +18,7 @@ import { LEVEL_CONFIGS, STORY_THEMES, ALL_COLUMNS } from './data/constants';
 import { OperationMode, GradeLevel, GamePhase, PositionalCol, ProblemData, Chip } from './types';
 import { sound } from './utils/sound';
 import { initAdMob } from './utils/admob';
+import { App as CapApp } from '@capacitor/app';
 
 const AUTO_SAVE_KEY = 'math_auto_save_state_v2';
 
@@ -169,6 +170,41 @@ export const App: React.FC = () => {
     localStorage.setItem('math_mascot', equippedMascot);
     localStorage.setItem('math_accessory', equippedAccessory);
   }, [currentLevel, currentMode, points, lives, streak, maxStreak, currentProblemIndex, solvedCount, timerSeconds, problem, gamePhase, placedDigits, chips, showSplash, playerName, equippedMascot, equippedAccessory]);
+
+  // Manejador nativo del boton Atras de Android
+  useEffect(() => {
+    const listener = CapApp.addListener('backButton', () => {
+      if (isWorksheetShareOpen) { setIsWorksheetShareOpen(false); return; }
+      if (isOptionsOpen) { setIsOptionsOpen(false); return; }
+      if (isProfileOpen) { setIsProfileOpen(false); return; }
+      if (isStoreOpen) { setIsStoreOpen(false); return; }
+      if (isTeacherReportOpen) { setIsTeacherReportOpen(false); return; }
+      if (isQrScannerOpen) { setIsQrScannerOpen(false); return; }
+      if (isVictoryOpen) { setIsVictoryOpen(false); return; }
+      if (isWelcomeOpen) { setIsWelcomeOpen(false); return; }
+
+      if (gamePhase === 'calculating' || gamePhase === 'complete') {
+        setGamePhase('placing');
+        return;
+      }
+
+      CapApp.exitApp();
+    });
+
+    return () => {
+      listener.then(l => l.remove());
+    };
+  }, [
+    isWorksheetShareOpen,
+    isOptionsOpen,
+    isProfileOpen,
+    isStoreOpen,
+    isTeacherReportOpen,
+    isQrScannerOpen,
+    isVictoryOpen,
+    isWelcomeOpen,
+    gamePhase,
+  ]);
 
   const handleFinishSplash = useCallback(() => {
     setShowSplash(false);
