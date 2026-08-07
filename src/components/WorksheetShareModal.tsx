@@ -34,6 +34,7 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   onPrint,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [selectedSheetNum, setSelectedSheetNum] = useState<number>(1);
 
   if (!isOpen) return null;
 
@@ -98,8 +99,6 @@ Grado: ${levelConfig.label} (${modeLabel})
     onPrint();
     onClose();
   };
-
-  const [selectedSheetNum, setSelectedSheetNum] = useState<number>(1);
 
   const modeSlug = currentMode === 'add' ? 'suma' : currentMode === 'sub' ? 'resta' : 'mixta';
   const paddedNum = String(selectedSheetNum).padStart(3, '0');
