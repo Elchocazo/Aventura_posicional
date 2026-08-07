@@ -12,6 +12,7 @@ import { TeacherReportModal } from './components/TeacherReportModal';
 import { VictoryModal } from './components/VictoryModal';
 import { QrScannerModal } from './components/QrScannerModal';
 import { WorksheetShareModal } from './components/WorksheetShareModal';
+import { WorksheetPrintable } from './components/WorksheetPrintable';
 import { SplashScreenOverlay } from './components/SplashScreenOverlay';
 import { LEVEL_CONFIGS, STORY_THEMES, ALL_COLUMNS } from './data/constants';
 import { OperationMode, GradeLevel, GamePhase, PositionalCol, ProblemData, Chip } from './types';
@@ -54,6 +55,7 @@ export const App: React.FC = () => {
   const [playerTitle, setPlayerTitle] = useState(() => localStorage.getItem('math_player_title') || 'Aventurero del Cálculo');
   const [playerTheme, setPlayerTheme] = useState(() => localStorage.getItem('math_player_theme') || 'sky');
   const [playerMotto, setPlayerMotto] = useState(() => localStorage.getItem('math_player_motto') || '¡Puedo con todo!');
+  const [printCounter, setPrintCounter] = useState<number>(() => parseInt(localStorage.getItem('math_print_counter') || '1', 10));
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'info' | 'success' | 'error' } | null>(null);
 
   const [problem, setProblem] = useState<ProblemData | null>(null);
