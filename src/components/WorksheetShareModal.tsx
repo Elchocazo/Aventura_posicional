@@ -2,15 +2,12 @@ import React, { useState } from 'react';
 import {
   X,
   Share2,
-  Printer,
   Copy,
   Check,
   Send,
-  Mail,
-  Instagram,
-  Sparkles,
-  FileText,
   Download,
+  Eye,
+  FileText,
 } from 'lucide-react';
 import { GradeLevel, GameMode } from '../types';
 import { LEVEL_CONFIGS } from '../data/constants';
@@ -22,7 +19,7 @@ interface WorksheetShareModalProps {
   gradeLevel: GradeLevel;
   currentMode: GameMode;
   printCounter: number;
-  onPrint: () => void;
+  onPrint?: () => void;
 }
 
 export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
@@ -31,58 +28,106 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   gradeLevel,
   currentMode,
   printCounter,
-  onPrint,
 }) => {
   const [copied, setCopied] = useState(false);
   const [selectedSheetNum, setSelectedSheetNum] = useState<number>(1);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isOpen) return null;
 
   const levelConfig = LEVEL_CONFIGS[gradeLevel];
   const modeLabel = currentMode === 'add' ? 'Sumas ➕' : currentMode === 'sub' ? 'Restas ➖' : 'Mixto 🔀';
-  const shareTitle = `🦉 Ficha de Ejercicios N° ${printCounter} - Valor Posicional (${levelConfig.label})`;
-  const appUrl = window.location.href;
+  const modeSlug = currentMode === 'add' ? 'suma' : currentMode === 'sub' ? 'resta' : 'mixta';
+  const paddedNum = String(selectedSheetNum).padStart(3, '0');
+  const pdfFileName = `ficha${gradeLevel}-${paddedNum}.pdf`;
+  const pdfPath = `./fichas/grado${gradeLevel}${modeSlug}/${pdfFileName}`;
 
-  const shareText = `🦉 *Aventura Posicional - Ficha de Ejercicios N° ${printCounter}*
+  const shareTitle = `🦉 Ficha de Ejercicios N° ${selectedSheetNum} - ${levelConfig.label}`;
+  const shareText = `🦉 *NumiMates - Ficha de Ejercicios N° ${selectedSheetNum}*
 Grado: ${levelConfig.label} (${modeLabel})
-12 Ejercicios con Código QR de Respuesta Automática para Calificar.
+12 Ejercicios con Código QR de Autocorrección.
 
-📱 Resuelve a mano e imprime o comparte aquí: ${appUrl}`;
+📱 ¡Aprende jugando con NumiMates!`;
 
-  // Native Web Share API (Abre la hoja de compartir nativa del celular: WhatsApp, Instagram, Mensajes, etc.)
+  // Descarga directa del archivo PDF como Blob para Android WebView
+  const handleDownloadPdf = async () => {
+    sound.playSuccess();
+    setIsDownloading(true);
+    try {
+      const response = await fetch(pdfPath);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = pdfFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (err) {
+      console.error('Download error:', err);
+      // Fallback a apertura directa
+      window.open(pdfPath, '_system');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Ver PDF directamente
+  const handleViewPdf = () => {
+    sound.playSelect();
+    const opened = window.open(pdfPath, '_system');
+    if (!opened) {
+      window.open(pdfPath, '_blank');
+    }
+  };
+
+  // Compartir archivo PDF directamente en menú nativo del celular (WhatsApp, Drive, etc.)
   const handleNativeShare = async () => {
     sound.playSelect();
+    try {
+      const response = await fetch(pdfPath);
+      const blob = await response.blob();
+      const file = new File([blob], pdfFileName, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          files: [file],
+        });
+        return;
+      }
+    } catch (e) {
+      console.log('File share not supported, falling back to text share:', e);
+    }
+
+    // Fallback compartir texto + URL
     if (navigator.share) {
       try {
         await navigator.share({
           title: shareTitle,
           text: shareText,
-          url: window.location.origin + pdfUrl.substring(1),
         });
       } catch (err) {
-        console.log('Share canceled or failed:', err);
+        console.log('Share canceled:', err);
       }
     } else {
       handleCopyText();
     }
   };
 
-  // WhatsApp link compatible con Android WebView (evita ERR_UNKNOWN_URL_SCHEME)
+  // Enviar a WhatsApp abriendo el intent nativo sin errores de esquema URL
   const handleWhatsAppShare = () => {
     sound.playSelect();
     const encoded = encodeURIComponent(shareText);
-    window.location.href = `https://wa.me/?text=${encoded}`;
+    const opened = window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_system');
+    if (!opened) {
+      window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    }
   };
 
-  // Gmail / Email link
-  const handleGmailShare = () => {
-    sound.playSelect();
-    const subject = encodeURIComponent(shareTitle);
-    const body = encodeURIComponent(shareText);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  };
-
-  // Copy text to clipboard
+  // Copiar texto al portapapeles
   const handleCopyText = async () => {
     sound.playSelect();
     try {
@@ -93,16 +138,6 @@ Grado: ${levelConfig.label} (${modeLabel})
       console.error('Failed to copy text:', e);
     }
   };
-
-  const handleTriggerPrint = () => {
-    sound.playSelect();
-    onPrint();
-    onClose();
-  };
-
-  const modeSlug = currentMode === 'add' ? 'suma' : currentMode === 'sub' ? 'resta' : 'mixta';
-  const paddedNum = String(selectedSheetNum).padStart(3, '0');
-  const pdfUrl = `./fichas/grado${gradeLevel}${modeSlug}/ficha${gradeLevel}-${paddedNum}.pdf`;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print overflow-y-auto animate-fadeIn">
@@ -122,7 +157,7 @@ Grado: ${levelConfig.label} (${modeLabel})
           </div>
           <div>
             <h2 className="font-black text-lg sm:text-xl text-emerald-950 leading-tight">
-              Imprimir o Descargar Ficha
+              Descargar y Compartir Fichas PDF
             </h2>
             <p className="text-xs font-bold text-slate-500 mt-0.5">
               Grado: {levelConfig.label} • {modeLabel}
@@ -130,84 +165,68 @@ Grado: ${levelConfig.label} (${modeLabel})
           </div>
         </div>
 
-        {/* PDF Direct Selection & Download Box */}
-        <div className="clay-card-purple p-3.5 space-y-2.5">
+        {/* PDF Selector and Action Buttons */}
+        <div className="clay-card-purple p-4 space-y-3">
           <div className="font-black flex items-center gap-1.5 text-xs uppercase tracking-wider text-purple-900">
-            <Download className="w-4 h-4 text-purple-600" />
-            <span>Biblioteca de Fichas (Grado {gradeLevel} - {modeLabel})</span>
+            <FileText className="w-4 h-4 text-purple-600" />
+            <span>Selecciona una Ficha de la Biblioteca</span>
           </div>
 
-          <div className="space-y-2 pt-1">
-            <select
-              value={selectedSheetNum}
-              onChange={(e) => setSelectedSheetNum(Number(e.target.value))}
-              className="w-full p-2.5 bg-white text-slate-800 font-bold text-xs rounded-xl border-2 border-purple-200 shadow-xs"
+          <select
+            value={selectedSheetNum}
+            onChange={(e) => setSelectedSheetNum(Number(e.target.value))}
+            className="w-full p-3 bg-white text-slate-800 font-extrabold text-xs sm:text-sm rounded-2xl border-2 border-purple-300 shadow-xs outline-none"
+          >
+            {Array.from({ length: 50 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                📄 Ficha N° {n} — {pdfFileName}
+              </option>
+            ))}
+          </select>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {/* Botón Descargar PDF */}
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isDownloading}
+              className="py-3 px-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
             >
-              {Array.from({ length: 50 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  Ficha N° {n} (ficha{gradeLevel}-{String(n).padStart(3, '0')}.pdf)
-                </option>
-              ))}
-            </select>
+              <Download className="w-4 h-4" />
+              <span>{isDownloading ? 'Guardando...' : 'Descargar PDF 📥'}</span>
+            </button>
 
-            <div className="flex gap-2">
-              {/* Botón Descargar PDF al Celular */}
-              <a
-                href={pdfUrl}
-                download={`ficha${gradeLevel}-${paddedNum}.pdf`}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => sound.playSuccess()}
-                className="flex-1 py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-transform active:scale-95 text-center no-underline"
-              >
-                <Download className="w-4 h-4" />
-                <span>Descargar PDF 📥</span>
-              </a>
-
-              {/* Botón Ver PDF */}
-              <a
-                href={pdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => sound.playSelect()}
-                className="py-2.5 px-3 bg-white text-purple-900 border-2 border-purple-300 hover:bg-purple-50 font-black text-xs rounded-xl flex items-center justify-center gap-1 shadow-2xs transition-transform active:scale-95 no-underline"
-              >
-                <span>Ver 👁️</span>
-              </a>
-            </div>
+            {/* Botón Ver PDF */}
+            <button
+              onClick={handleViewPdf}
+              className="py-3 px-3 bg-white text-purple-900 border-2 border-purple-300 hover:bg-purple-50 font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-2xs transition-all active:scale-95"
+            >
+              <Eye className="w-4 h-4 text-purple-700" />
+              <span>Ver PDF 👁️</span>
+            </button>
           </div>
         </div>
 
-        {/* Share Options Grid */}
+        {/* Options Grid */}
         <div className="space-y-2.5 pt-1">
-          {/* Botón Abrir Hoja Nativa de Compartir en Celular (WhatsApp, Instagram, etc.) */}
+          {/* Compartir el archivo PDF adjunto mediante el menú del celular */}
           <button
             onClick={handleNativeShare}
             className="w-full py-3.5 clay-btn-amber font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md active:scale-98"
           >
             <Share2 className="w-4 h-4 shrink-0" />
-            <span>Compartir Ficha (Menú del Celular 📱)</span>
-          </button>
-
-          {/* Direct Print / Save as PDF */}
-          <button
-            onClick={handleTriggerPrint}
-            className="w-full py-3.5 clay-btn-sky font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md"
-          >
-            <Printer className="w-4 h-4 text-white shrink-0" />
-            <span>Imprimir Ficha Generada (con QR) 🖨️</span>
+            <span>Compartir Ficha PDF (Menú Celular 📱)</span>
           </button>
 
           {/* WhatsApp Direct */}
           <button
             onClick={handleWhatsAppShare}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
           >
             <Send className="w-4 h-4 fill-white shrink-0" />
-            <span>Enviar por WhatsApp</span>
+            <span>Enviar a WhatsApp</span>
           </button>
 
-          {/* Copy Message / Link */}
+          {/* Copiar Texto */}
           <button
             onClick={handleCopyText}
             className="w-full py-2.5 clay-btn-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 border-2 border-slate-200"
@@ -215,12 +234,12 @@ Grado: ${levelConfig.label} (${modeLabel})
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-emerald-700">¡Texto de Ficha Copiado!</span>
+                <span className="text-emerald-700">¡Texto Copiado!</span>
               </>
             ) : (
               <>
                 <Copy className="w-4 h-4 text-slate-600 shrink-0" />
-                <span>Copiar Texto</span>
+                <span>Copiar Texto de la Ficha</span>
               </>
             )}
           </button>
@@ -229,5 +248,3 @@ Grado: ${levelConfig.label} (${modeLabel})
     </div>
   );
 };
-
-
