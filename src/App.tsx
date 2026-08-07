@@ -360,15 +360,9 @@ export const App: React.FC = () => {
         onClose={() => setIsWorksheetShareOpen(false)}
         gradeLevel={currentLevel}
         currentMode={currentMode}
-        printCounter={printCounter}
-        onPrint={() => {
-          setPrintCounter(c => {
-            const next = c + 1;
-            localStorage.setItem('math_print_counter', next.toString());
-            return next;
-          });
-          setTimeout(() => window.print(), 200);
-        }}
+        points={points}
+        onSpendPoints={(amt) => setPoints(p => Math.max(0, p - amt))}
+        onAwardPoints={(amt) => setPoints(p => p + amt)}
       />
 
       {/* Componente imprimible oculto que solo aparece al llamar a window.print() */}

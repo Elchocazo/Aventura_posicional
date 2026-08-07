@@ -18,8 +18,9 @@ interface WorksheetShareModalProps {
   onClose: () => void;
   gradeLevel: GradeLevel;
   currentMode: GameMode;
-  printCounter: number;
-  onPrint?: () => void;
+  points: number;
+  onSpendPoints: (amount: number) => void;
+  onAwardPoints: (amount: number) => void;
 }
 
 // Convertidor de ArrayBuffer a Base64 para escribir el archivo nativo en Android
@@ -38,12 +39,33 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   onClose,
   gradeLevel,
   currentMode,
+  points,
+  onSpendPoints,
+  onAwardPoints,
 }) => {
   const [selectedSheetNum, setSelectedSheetNum] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
+  // Control de Límite Semanal de Fichas Gratis (3 por semana)
+  const [weeklySheetsUsed, setWeeklySheetsUsed] = useState<number>(() => {
+    const lastReset = parseInt(localStorage.getItem('math_sheet_last_reset') || '0', 10);
+    const now = Date.now();
+    // 7 días en milisegundos = 7 * 24 * 60 * 60 * 1000
+    if (now - lastReset > 604800000) {
+      localStorage.setItem('math_sheet_last_reset', now.toString());
+      localStorage.setItem('math_weekly_sheets_used', '0');
+      return 0;
+    }
+    return parseInt(localStorage.getItem('math_weekly_sheets_used') || '0', 10);
+  });
+
   if (!isOpen) return null;
+
+  const FREE_LIMIT = 3;
+  const EXTRA_COST = 500;
+  const isFreeAvailable = weeklySheetsUsed < FREE_LIMIT;
+  const remainingFree = FREE_LIMIT - weeklySheetsUsed;
 
   const levelConfig = LEVEL_CONFIGS[gradeLevel];
   const modeLabel = currentMode === 'add' ? 'Sumas ➕' : currentMode === 'sub' ? 'Restas ➖' : 'Mixto 🔀';
@@ -59,6 +81,12 @@ Grado: ${levelConfig.label} (${modeLabel})
 
   // PROCESO PROFUNDO: Leer PDF local de los assets -> Escribir en Almacenamiento Celular -> Abrir Menú Nativo Android con PDF Adjunto
   const handleShareWorksheetPdf = async () => {
+    if (!isFreeAvailable && points < EXTRA_COST) {
+      sound.playError();
+      alert(`⚠️ Has alcanzado el límite de 3 fichas gratis semanales.\nNecesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para desbloquear esta ficha extra.\n¡Resuelve ejercicios o ve videos para ganar estrellas!`);
+      return;
+    }
+
     sound.playSelect();
     setIsLoading(true);
     setStatusMsg('📄 Preparando archivo PDF para el celular...');
@@ -93,9 +121,17 @@ Grado: ${levelConfig.label} (${modeLabel})
       });
 
       sound.playSuccess();
+
+      // Descontar uso gratis o estrellas
+      if (isFreeAvailable) {
+        const next = weeklySheetsUsed + 1;
+        setWeeklySheetsUsed(next);
+        localStorage.setItem('math_weekly_sheets_used', next.toString());
+      } else {
+        onSpendPoints(EXTRA_COST);
+      }
     } catch (err: any) {
       console.error('Error al compartir archivo PDF nativo:', err);
-      // Fallback si se ejecuta en navegador Web en lugar de celular
       try {
         const a = document.createElement('a');
         a.href = relativePdfPath;
@@ -111,6 +147,20 @@ Grado: ${levelConfig.label} (${modeLabel})
       setIsLoading(false);
       setStatusMsg(null);
     }
+  };
+
+  // Simular ver video corto por recompensa (+100 ⭐)
+  const handleWatchAdReward = () => {
+    sound.playSelect();
+    setIsLoading(true);
+    setStatusMsg('📺 Viendo video publicitario... (+100 ⭐)');
+    setTimeout(() => {
+      onAwardPoints(100);
+      sound.playSuccess();
+      setIsLoading(false);
+      setStatusMsg(null);
+      alert('🎉 ¡Felicidades! Ganaste +100 ⭐ por ver el video de recompensa.');
+    }, 2500);
   };
 
   return (
@@ -139,6 +189,25 @@ Grado: ${levelConfig.label} (${modeLabel})
               Grado: {levelConfig.label} • {modeLabel}
             </p>
           </div>
+        </div>
+
+        {/* Freemium Limit Status Badge */}
+        <div className={`p-3.5 rounded-2xl border-2 space-y-1 ${
+          isFreeAvailable
+            ? 'clay-card-emerald border-emerald-300 text-emerald-950'
+            : 'clay-card-amber border-amber-300 text-amber-950'
+        }`}>
+          <div className="flex items-center justify-between text-xs font-black">
+            <span>{isFreeAvailable ? '🎁 Fichas Gratis esta semana:' : '⭐ Límite semanal gratis alcanzado:'}</span>
+            <span className="bg-white/80 px-2 py-0.5 rounded-full border border-current">
+              {isFreeAvailable ? `${remainingFree} de 3` : '3 de 3 usadas'}
+            </span>
+          </div>
+          <p className="text-[11px] font-semibold text-slate-700 leading-tight">
+            {isFreeAvailable
+              ? 'Tienes 3 descargas de fichas gratis cada 7 días.'
+              : `Puedes desbloquear fichas adicionales por ${EXTRA_COST} ⭐ (Tus estrellas: ${points} ⭐).`}
+          </p>
         </div>
 
         {/* Selección de Ficha N° 1 a 50 */}
@@ -170,24 +239,42 @@ Grado: ${levelConfig.label} (${modeLabel})
           </div>
         )}
 
-        {/* ÚNICO BOTÓN PRINCIPAL SOLICITADO */}
-        <div className="pt-2">
+        {/* BOTÓN PRINCIPAL */}
+        <div className="space-y-2 pt-1">
           <button
             onClick={handleShareWorksheetPdf}
             disabled={isLoading}
-            className="w-full py-4 px-4 clay-btn-emerald font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg transition-transform active:scale-95"
+            className={`w-full py-4 px-4 font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg transition-transform active:scale-95 rounded-2xl ${
+              isFreeAvailable
+                ? 'clay-btn-emerald text-white'
+                : 'clay-btn-amber text-amber-950'
+            }`}
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span>Procesando PDF...</span>
               </>
+            ) : isFreeAvailable ? (
+              <>
+                <Share2 className="w-5 h-5" />
+                <span>Descargar y Compartir Ficha (GRATIS) 📲</span>
+              </>
             ) : (
               <>
                 <Share2 className="w-5 h-5" />
-                <span>Descargar y Compartir Ficha PDF 📲</span>
+                <span>Desbloquear Ficha por {EXTRA_COST} ⭐ 📲</span>
               </>
             )}
+          </button>
+
+          {/* Botón para Ganar Estrellas por Video Recompensa */}
+          <button
+            onClick={handleWatchAdReward}
+            disabled={isLoading}
+            className="w-full py-3 px-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+          >
+            <span>📺 Ver Video Recompensa (+100 ⭐)</span>
           </button>
         </div>
 
