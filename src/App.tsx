@@ -309,11 +309,14 @@ export const App: React.FC = () => {
 
       <BottomNav
         activeTab="game"
+        mascotIcon={equippedMascot}
         onChangeTab={(tab) => {
+          if (tab === 'game') { setIsOptionsOpen(false); setIsProfileOpen(false); }
+          if (tab === 'worksheets') setIsWorksheetShareOpen(true);
+          if (tab === 'profile') setIsProfileOpen(true);
+          if (tab === 'report') setIsTeacherReportOpen(true);
           if (tab === 'levels') setIsOptionsOpen(true);
           if (tab === 'store') setIsStoreOpen(true);
-          if (tab === 'report') setIsTeacherReportOpen(true);
-          if (tab === 'profile') setIsProfileOpen(true);
         }}
       />
 

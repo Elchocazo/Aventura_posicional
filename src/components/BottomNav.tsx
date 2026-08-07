@@ -1,56 +1,92 @@
 import React from 'react';
-import { Gamepad2, Layers, User, ShoppingBag, GraduationCap } from 'lucide-react';
+import { Home, BookOpen, TrendingUp, Settings, ShoppingBag } from 'lucide-react';
 
-export type TabType = 'game' | 'levels' | 'profile' | 'store' | 'report';
+export type TabType = 'game' | 'worksheets' | 'profile' | 'report' | 'levels' | 'store';
 
 interface BottomNavProps {
   activeTab: TabType;
   onChangeTab: (tab: TabType) => void;
+  mascotIcon?: string;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onChangeTab }) => {
-  const tabs = [
-    { id: 'game' as TabType, label: 'Juego', icon: Gamepad2 },
-    { id: 'levels' as TabType, label: 'Niveles', icon: Layers },
-    { id: 'profile' as TabType, label: 'Perfil', icon: User },
-    { id: 'store' as TabType, label: 'Tienda', icon: ShoppingBag },
-    { id: 'report' as TabType, label: 'Progreso', icon: GraduationCap },
-  ];
-
+export const BottomNav: React.FC<BottomNavProps> = ({
+  activeTab,
+  onChangeTab,
+  mascotIcon = '🐶',
+}) => {
   return (
-    <nav className="fixed bottom-2 left-3 right-3 max-w-md mx-auto z-40 clay-card py-1.5 px-3 shadow-xl no-print border-2 border-white/80">
-      <div className="flex items-center justify-around">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 no-print px-3 pb-2 pt-1">
+      <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-[0_-4px_25px_rgba(0,0,0,0.1)] border-2 border-slate-100 px-2 py-1 flex items-center justify-around relative">
+        
+        {/* 1. Inicio (Home) */}
+        <button
+          onClick={() => onChangeTab('game')}
+          className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all active:scale-95 ${
+            activeTab === 'game' ? 'text-sky-600' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Home className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${activeTab === 'game' ? 'scale-110' : ''}`} />
+          <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'game' ? 'font-black text-sky-700' : 'font-semibold'}`}>
+            Inicio
+          </span>
+        </button>
 
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onChangeTab(tab.id)}
-              className={`flex flex-col items-center justify-center py-1 px-1.5 transition-all active:scale-95 ${
-                isActive
-                  ? 'text-sky-700 font-black'
-                  : 'text-slate-400 hover:text-slate-600 font-bold'
-              }`}
-            >
-              <div
-                className={`p-1.5 rounded-2xl transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-[0_3px_0_#1d4ed8,inset_0_2px_3px_rgba(255,255,255,0.4)] scale-110 -translate-y-1'
-                    : 'bg-transparent'
-                }`}
-              >
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <span className={`text-[10px] sm:text-[11px] mt-1 tracking-tight ${isActive ? 'font-black text-sky-800' : ''}`}>
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+        {/* 2. Biblioteca de Fichas (Library) */}
+        <button
+          onClick={() => onChangeTab('worksheets')}
+          className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all active:scale-95 ${
+            activeTab === 'worksheets' ? 'text-sky-600' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <BookOpen className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${activeTab === 'worksheets' ? 'scale-110' : ''}`} />
+          <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'worksheets' ? 'font-black text-sky-700' : 'font-semibold'}`}>
+            Biblioteca
+          </span>
+        </button>
+
+        {/* 3. Perfil (Botón circular elevado al centro estilo imagen) */}
+        <button
+          onClick={() => onChangeTab('profile')}
+          className="flex flex-col items-center justify-center relative -mt-5 group"
+        >
+          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-2xl sm:text-3xl border-3 border-white shadow-md transition-transform active:scale-90 group-hover:scale-105 ${
+            activeTab === 'profile'
+              ? 'bg-gradient-to-tr from-sky-400 via-sky-500 to-teal-400 ring-4 ring-sky-300 shadow-sky-300/50'
+              : 'bg-gradient-to-tr from-amber-200 via-sky-200 to-indigo-200'
+          }`}>
+            <span className="drop-shadow-xs animate-float">{mascotIcon}</span>
+          </div>
+          <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'profile' ? 'font-black text-sky-700' : 'font-semibold text-slate-500'}`}>
+            Perfil
+          </span>
+        </button>
+
+        {/* 4. Progreso (Progress / Stats) */}
+        <button
+          onClick={() => onChangeTab('report')}
+          className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all active:scale-95 ${
+            activeTab === 'report' ? 'text-sky-600' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <TrendingUp className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${activeTab === 'report' ? 'scale-110' : ''}`} />
+          <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'report' ? 'font-black text-sky-700' : 'font-semibold'}`}>
+            Progreso
+          </span>
+        </button>
+
+        {/* 5. Ajustes / Niveles (Settings) */}
+        <button
+          onClick={() => onChangeTab('levels')}
+          className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all active:scale-95 ${
+            activeTab === 'levels' ? 'text-sky-600' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Settings className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${activeTab === 'levels' ? 'scale-110' : ''}`} />
+          <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'levels' ? 'font-black text-sky-700' : 'font-semibold'}`}>
+            Ajustes
+          </span>
+        </button>
       </div>
     </nav>
   );
 };
-
