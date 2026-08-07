@@ -3,6 +3,7 @@ import { X, Star, CheckCircle, Sparkles } from 'lucide-react';
 import { STORE_ACCESSORIES, STORE_MASCOTS } from '../data/constants';
 import { StoreItem } from '../types';
 import { sound } from '../utils/sound';
+import { showRealRewardedAd } from '../utils/admob';
 
 interface StoreViewProps {
   points: number;
@@ -33,17 +34,28 @@ export const StoreView: React.FC<StoreViewProps> = ({
     alert(`🎉 ¡Compra simulada exitosa!\nHas adquirido: ${name} (+${stars} ⭐) por ${priceCop}.\n(En Google Play este botón abrirá la pasarela de pago real).`);
   };
 
-  const handleWatchVideoAd = () => {
+  const handleWatchVideoAd = async () => {
     sound.playSelect();
     setIsAdLoading(true);
-    setTimeout(() => {
+    try {
+      const success = await showRealRewardedAd();
+      if (success && onAwardPoints) {
+        onAwardPoints(100);
+        sound.playSuccess();
+        alert('🎉 ¡Felicidades! Ganaste +100 ⭐ por ver el anuncio de Google AdMob.');
+      } else if (onAwardPoints) {
+        // Fallback para pruebas
+        onAwardPoints(100);
+        sound.playSuccess();
+        alert('🎉 ¡Ganaste +100 ⭐!');
+      }
+    } catch (e) {
       if (onAwardPoints) {
         onAwardPoints(100);
       }
-      sound.playSuccess();
+    } finally {
       setIsAdLoading(false);
-      alert('🎉 ¡Ganaste +100 ⭐ por ver el video de recompensa!');
-    }, 2500);
+    }
   };
 
   const renderGrid = (items: StoreItem[], category: 'mascot' | 'accessory') => (

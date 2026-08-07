@@ -12,6 +12,7 @@ import { Share } from '@capacitor/share';
 import { GradeLevel, GameMode } from '../types';
 import { LEVEL_CONFIGS } from '../data/constants';
 import { sound } from '../utils/sound';
+import { showRealRewardedAd } from '../utils/admob';
 
 interface WorksheetShareModalProps {
   isOpen: boolean;
@@ -149,18 +150,28 @@ Grado: ${levelConfig.label} (${modeLabel})
     }
   };
 
-  // Simular ver video corto por recompensa (+100 ⭐)
-  const handleWatchAdReward = () => {
+  // Ver video por recompensa con Google AdMob (+100 ⭐)
+  const handleWatchAdReward = async () => {
     sound.playSelect();
     setIsLoading(true);
-    setStatusMsg('📺 Viendo video publicitario... (+100 ⭐)');
-    setTimeout(() => {
+    setStatusMsg('📺 Cargando anuncio de Google AdMob...');
+    try {
+      const success = await showRealRewardedAd();
+      if (success) {
+        onAwardPoints(100);
+        sound.playSuccess();
+        alert('🎉 ¡Felicidades! Ganaste +100 ⭐ por ver el video de Google AdMob.');
+      } else {
+        onAwardPoints(100);
+        sound.playSuccess();
+        alert('🎉 ¡Ganaste +100 ⭐!');
+      }
+    } catch (e) {
       onAwardPoints(100);
-      sound.playSuccess();
+    } finally {
       setIsLoading(false);
       setStatusMsg(null);
-      alert('🎉 ¡Felicidades! Ganaste +100 ⭐ por ver el video de recompensa.');
-    }, 2500);
+    }
   };
 
   return (

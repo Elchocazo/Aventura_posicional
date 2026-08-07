@@ -17,10 +17,14 @@ import { SplashScreenOverlay } from './components/SplashScreenOverlay';
 import { LEVEL_CONFIGS, STORY_THEMES, ALL_COLUMNS } from './data/constants';
 import { OperationMode, GradeLevel, GamePhase, PositionalCol, ProblemData, Chip } from './types';
 import { sound } from './utils/sound';
+import { initAdMob } from './utils/admob';
 
 const AUTO_SAVE_KEY = 'math_auto_save_state_v2';
 
 export const App: React.FC = () => {
+  useEffect(() => {
+    initAdMob();
+  }, []);
   const [currentLevel, setCurrentLevel] = useState<GradeLevel>(3);
   const [currentMode, setCurrentMode] = useState<OperationMode>('add');
   const [points, setPoints] = useState<number>(() => parseInt(localStorage.getItem('math_points') || '0', 10));
