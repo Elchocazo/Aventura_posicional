@@ -27,35 +27,31 @@ export const StoreView: React.FC<StoreViewProps> = ({
   const [activeTab, setActiveTab] = useState<'mascots' | 'accessories' | 'stars'>('mascots');
   const [isAdLoading, setIsAdLoading] = useState(false);
 
-  const handleBuyStarPack = (stars: number, priceCop: string, name: string) => {
-    sound.playSuccess();
-    if (onAwardPoints) {
-      onAwardPoints(stars);
-    }
-    alert(`🎉 ¡Compra simulada exitosa!\nHas adquirido: ${name} (+${stars} ⭐) por ${priceCop}.\n(En Google Play este botón abrirá la pasarela de pago real).`);
-  };
-
-  const handleWatchVideoAd = async () => {
+  const handleBuyStarPack = async (stars: number, packName: string) => {
     sound.playSelect();
     setIsAdLoading(true);
     try {
       const success = await showRealRewardedAd();
       if (success && onAwardPoints) {
-        onAwardPoints(100);
+        onAwardPoints(stars);
         sound.playSuccess();
-        alert('🎉 ¡Felicidades! Ganaste +100 ⭐ por ver el anuncio de Google AdMob.');
+        alert(`🎉 ¡Felicidades! Completaste el video de AdMob y ganaste: ${packName} (+${stars} ⭐).`);
       } else if (onAwardPoints) {
-        onAwardPoints(100);
+        onAwardPoints(stars);
         sound.playSuccess();
-        alert('🎉 ¡Ganaste +100 ⭐!');
+        alert(`🎉 ¡Ganaste +${stars} ⭐!`);
       }
     } catch (e) {
       if (onAwardPoints) {
-        onAwardPoints(100);
+        onAwardPoints(stars);
       }
     } finally {
       setIsAdLoading(false);
     }
+  };
+
+  const handleWatchVideoAd = async () => {
+    await handleBuyStarPack(100, 'Recompensa Diaria (100 ⭐)');
   };
 
   const renderGrid = (items: StoreItem[], category: 'mascot' | 'accessory') => (
@@ -207,21 +203,23 @@ export const StoreView: React.FC<StoreViewProps> = ({
               <span>{isAdLoading ? '📺 Viendo anuncio... (+100 ⭐)' : '📺 Ver Video Recompensa (+100 ⭐ GRATIS)'}</span>
             </button>
 
-            {/* Paquetes de Estrellas */}
+            {/* Paquetes de Estrellas con Anuncios AdMob */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
               <button
-                onClick={() => handleBuyStarPack(500, '$5.000 COP', 'Bolsa de Estrellas (500 ⭐)')}
+                onClick={() => handleBuyStarPack(500, 'Bolsa de Estrellas (+500 ⭐)')}
+                disabled={isAdLoading}
                 className="p-3 bg-white hover:bg-purple-50 border-2 border-purple-200 rounded-2xl flex flex-col items-center justify-between text-center transition-all active:scale-95 shadow-2xs"
               >
                 <span className="text-xl">⭐ 500</span>
                 <span className="font-black text-xs text-purple-950 my-1">Bolsa de Estrellas</span>
-                <span className="px-3 py-1 bg-purple-600 text-white font-black text-xs rounded-xl w-full">
-                  $5.000 COP
+                <span className="px-2 py-1 bg-purple-600 text-white font-black text-[10px] rounded-xl w-full flex items-center justify-center gap-1">
+                  <span>📺 Ver Anuncio AdMob</span>
                 </span>
               </button>
 
               <button
-                onClick={() => handleBuyStarPack(2500, '$19.900 COP', 'Saco de Estrellas (2.500 ⭐)')}
+                onClick={() => handleBuyStarPack(2500, 'Saco de Estrellas (+2.500 ⭐)')}
+                disabled={isAdLoading}
                 className="p-3 bg-gradient-to-b from-amber-50 to-orange-50 border-2 border-amber-400 rounded-2xl flex flex-col items-center justify-between text-center transition-all active:scale-95 shadow-xs relative"
               >
                 <span className="absolute -top-2.5 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-2xs">
@@ -229,13 +227,14 @@ export const StoreView: React.FC<StoreViewProps> = ({
                 </span>
                 <span className="text-xl mt-1">⭐ 2.500</span>
                 <span className="font-black text-xs text-amber-950 my-1">Saco de Estrellas</span>
-                <span className="px-3 py-1 bg-amber-500 text-amber-950 font-black text-xs rounded-xl w-full">
-                  $19.900 COP
+                <span className="px-2 py-1 bg-amber-500 text-amber-950 font-black text-[10px] rounded-xl w-full flex items-center justify-center gap-1">
+                  <span>📺 Ver Anuncio AdMob</span>
                 </span>
               </button>
 
               <button
-                onClick={() => handleBuyStarPack(6000, '$39.900 COP', 'Cofre de Estrellas (6.000 ⭐)')}
+                onClick={() => handleBuyStarPack(6000, 'Cofre de Estrellas (+6.000 ⭐)')}
+                disabled={isAdLoading}
                 className="p-3 bg-gradient-to-b from-emerald-50 to-teal-50 border-2 border-emerald-400 rounded-2xl flex flex-col items-center justify-between text-center transition-all active:scale-95 shadow-xs relative"
               >
                 <span className="absolute -top-2.5 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-2xs">
@@ -243,8 +242,8 @@ export const StoreView: React.FC<StoreViewProps> = ({
                 </span>
                 <span className="text-xl mt-1">⭐ 6.000</span>
                 <span className="font-black text-xs text-emerald-950 my-1">Cofre de Estrellas</span>
-                <span className="px-3 py-1 bg-emerald-600 text-white font-black text-xs rounded-xl w-full">
-                  $39.900 COP
+                <span className="px-2 py-1 bg-emerald-600 text-white font-black text-[10px] rounded-xl w-full flex items-center justify-center gap-1">
+                  <span>📺 Ver Anuncio AdMob</span>
                 </span>
               </button>
             </div>
