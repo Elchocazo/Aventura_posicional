@@ -18,7 +18,7 @@ export const TeacherReportView: React.FC<TeacherReportViewProps> = ({
 }) => {
   return (
     <div className="clay-card p-5 sm:p-6 text-slate-800 space-y-4">
-      <div className="flex items-center gap-2.5 border-b-2 border-slate-100 pb-3">
+      <div className="flex items-center gap-2.5 border-b-2 border-slate-100 pb-3 pr-10">
         <span className="text-3xl">🎓</span>
         <div>
           <h2 className="font-black text-lg sm:text-xl text-indigo-900 leading-none">
@@ -117,11 +117,18 @@ export const TeacherReportModal: React.FC<TeacherReportModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print">
-      <div className="relative max-w-md w-full">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print overflow-y-auto animate-fadeIn"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-w-md w-full my-auto"
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 p-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors active:scale-95"
+          title="Cerrar"
         >
           <X className="w-5 h-5" />
         </button>

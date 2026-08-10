@@ -15,18 +15,22 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   gradeLabel,
   gamePhase,
 }) => {
-  // Format short grade label
-  const shortGrade = gradeLabel.split(' ')[0] || gradeLabel;
+  // Format grade badge cleanly to "Grado X"
+  const shortGrade = gradeLabel.includes('Segundo') ? 'Grado 2'
+    : gradeLabel.includes('Tercer') ? 'Grado 3'
+    : gradeLabel.includes('Cuarto') ? 'Grado 4'
+    : gradeLabel.includes('Quinto') ? 'Grado 5'
+    : (gradeLabel.match(/\d+/) ? `Grado ${gradeLabel.match(/\d+/)?.[0]}` : gradeLabel.split('(')[0].trim());
 
   return (
     <div className="clay-card p-4 sm:p-5 transition-all relative space-y-3 border-3 border-amber-200">
       {/* Header Badges Bar */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-[0_3px_0_#0369a1,inset_0_2px_3px_rgba(255,255,255,0.4)]">
+        <div className="flex items-center gap-1.5 flex-nowrap">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-[0_3px_0_#0369a1,inset_0_2px_3px_rgba(255,255,255,0.4)] whitespace-nowrap shrink-0">
             📖 Problema #{currentProblemIndex}
           </span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-2xl text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-2xl text-xs font-black bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap shrink-0">
             {shortGrade}
           </span>
         </div>

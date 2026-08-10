@@ -31,16 +31,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </span>
         </button>
 
-        {/* 2. Biblioteca de Fichas (Library) */}
+        {/* 2. Tienda (Store) */}
         <button
-          onClick={() => onChangeTab('worksheets')}
+          onClick={() => onChangeTab('store')}
           className={`flex flex-col items-center justify-center py-1 px-2.5 transition-all active:scale-95 ${
-            activeTab === 'worksheets' ? 'text-sky-600' : 'text-slate-400 hover:text-slate-600'
+            activeTab === 'store' ? 'text-purple-600' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
-          <BookOpen className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${activeTab === 'worksheets' ? 'scale-110' : ''}`} />
-          <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'worksheets' ? 'font-black text-sky-700' : 'font-semibold'}`}>
-            Biblioteca
+          <ShoppingBag className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform ${activeTab === 'store' ? 'scale-110' : ''}`} />
+          <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'store' ? 'font-black text-purple-700' : 'font-semibold'}`}>
+            Tienda
           </span>
         </button>
 

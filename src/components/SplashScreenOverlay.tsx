@@ -67,7 +67,47 @@ export const SplashScreenOverlay: React.FC<SplashScreenOverlayProps> = ({ onFini
         background: '#7dd3fc',
       }}
     >
-      {/* Full-screen splash image */}
+      {/* Top Title Header Banner */}
+      <div style={{
+        position: 'absolute',
+        top: 'calc(env(safe-area-inset-top, 24px) + 16px)',
+        left: 0, right: 0,
+        zIndex: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+        pointerEvents: 'none',
+      }}>
+        <h1 style={{
+          margin: 0,
+          fontFamily: 'system-ui, sans-serif',
+          fontWeight: 900,
+          fontSize: '2.2rem',
+          color: 'white',
+          letterSpacing: '-0.02em',
+          textShadow: '0 4px 12px rgba(14, 165, 233, 0.8), 0 2px 4px rgba(0,0,0,0.3)',
+          WebkitTextStroke: '1px #0284c7',
+        }}>
+          NumiMates 🐶
+        </h1>
+        <span style={{
+          fontSize: '0.75rem',
+          fontWeight: 800,
+          color: '#0369a1',
+          background: 'rgba(255,255,255,0.95)',
+          padding: '3px 12px',
+          borderRadius: '999px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}>
+          Aventura Posicional
+        </span>
+      </div>
+
+      {/* Full-screen Vertical Poster Image (100% Seamless Cover) */}
       <img
         src={splashImg}
         alt="NumiMates"
@@ -77,7 +117,7 @@ export const SplashScreenOverlay: React.FC<SplashScreenOverlayProps> = ({ onFini
           width: '100%',
           height: '100%',
           objectFit: 'cover',
-          objectPosition: 'center top',
+          objectPosition: 'center center',
         }}
       />
 

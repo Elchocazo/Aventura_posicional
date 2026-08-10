@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Full-screen background image that covers the entire screen, no gaps -->
+    <item>
+        <bitmap
+            android:src="@drawable/splash_bg"
+            android:gravity="fill"
+            android:tileMode="disabled" />
+    </item>
+</layer-list>

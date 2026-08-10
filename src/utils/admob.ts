@@ -1,13 +1,12 @@
-import { AdMob, RewardAdOptions } from '@capacitor-community/admob';
+import { AdMob, RewardAdOptions, RewardAdPluginEvents } from '@capacitor-community/admob';
 
-// ID de prueba oficial de Google AdMob para anuncios de video recompensados
-// Cuando tengas tu ID real de AdMob en produccion, solo cambias esta constante:
-export const ADMOB_REWARDED_AD_ID = 'ca-app-pub-3940256099942544/5224354917';
+// ID real de Google AdMob para anuncios de video recompensados
+export const ADMOB_REWARDED_AD_ID = 'ca-app-pub-7575796190560022/7666564537';
 
 export const initAdMob = async () => {
   try {
     await AdMob.initialize({
-      initializeForTesting: true,
+      initializeForTesting: false,
     });
   } catch (e) {
     console.log('AdMob init status:', e);
@@ -15,15 +14,38 @@ export const initAdMob = async () => {
 };
 
 export const showRealRewardedAd = async (): Promise<boolean> => {
-  try {
-    const options: RewardAdOptions = {
-      adId: ADMOB_REWARDED_AD_ID,
+  return new Promise(async (resolve) => {
+    let rewarded = false;
+    let dismissedListener: any = null;
+    let rewardListener: any = null;
+
+    const cleanup = () => {
+      if (rewardListener) try { rewardListener.remove(); } catch(e){}
+      if (dismissedListener) try { dismissedListener.remove(); } catch(e){}
     };
-    await AdMob.prepareRewardVideoAd(options);
-    const reward = await AdMob.showRewardVideoAd();
-    return !!reward;
-  } catch (e) {
-    console.error('Error al mostrar anuncio de AdMob:', e);
-    return false;
-  }
+
+    try {
+      const options: RewardAdOptions = {
+        adId: ADMOB_REWARDED_AD_ID,
+      };
+
+      rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
+        rewarded = true;
+      });
+
+      dismissedListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+        cleanup();
+        resolve(rewarded);
+      });
+
+      await AdMob.prepareRewardVideoAd(options);
+      const res = await AdMob.showRewardVideoAd();
+      if (res) rewarded = true;
+    } catch (e) {
+      console.error('Error al mostrar anuncio de AdMob:', e);
+      cleanup();
+      // En caso de fallo o prueba sin red, otorgar recompensa para no bloquear la experiencia del usuario
+      resolve(true);
+    }
+  });
 };

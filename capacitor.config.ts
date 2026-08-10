@@ -7,8 +7,13 @@ const config: CapacitorConfig = {
   bundledWebRuntime: false,
   server: {
     androidScheme: 'https',
-    cleartext: true,
-    allowNavigation: ['*']
+    cleartext: false,
+    allowNavigation: [
+      'https://*.google.com',
+      'https://*.googleapis.com',
+      'https://*.googlesyndication.com',
+      'https://*.doubleclick.net'
+    ]
   }
 };
 

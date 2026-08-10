@@ -1,21 +1,54 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ============================================================
+# ProGuard / R8 rules for Capacitor + Android WebView app
+# ============================================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Capacitor core ---
+-keep class com.getcapacitor.** { *; }
+-keep interface com.getcapacitor.** { *; }
+-dontwarn com.getcapacitor.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- WebView JavaScript Interface ---
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keepattributes JavascriptInterface
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- AndroidX / AppCompat ---
+-keep class androidx.** { *; }
+-dontwarn androidx.**
+
+# --- Google AdMob ---
+-keep class com.google.android.gms.ads.** { *; }
+-dontwarn com.google.android.gms.**
+
+# --- Cordova plugins ---
+-keep class org.apache.cordova.** { *; }
+-dontwarn org.apache.cordova.**
+
+# --- Keep app entry point ---
+-keep class com.ejemplo.aventuramatematica.** { *; }
+
+# --- Preserve line numbers for crash reports ---
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# --- Keep enums ---
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# --- Parcelable ---
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+
+# --- Serializable ---
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}

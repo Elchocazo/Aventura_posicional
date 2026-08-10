@@ -69,12 +69,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{streak}</span>
           </div>
 
-          <button onClick={onOpenQrScanner} className="p-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 active:scale-90 transition-all">
+          <button onClick={onOpenQrScanner} className="p-2 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 active:scale-90 transition-all" title="Escanear QR de Fichas">
             <Camera className="w-4.5 h-4.5" />
-          </button>
-
-          <button onClick={onOpenSettings} className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-90 transition-all">
-            <Settings className="w-4.5 h-4.5" />
           </button>
         </div>
       </div>

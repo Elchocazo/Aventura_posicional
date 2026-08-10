@@ -66,7 +66,7 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
 
   if (!isOpen) return null;
 
-  const FREE_LIMIT = 3;
+  const FREE_LIMIT = 1;
   const EXTRA_COST = 500;
   const isFreeAvailable = weeklySheetsUsed < FREE_LIMIT;
   const remainingFree = FREE_LIMIT - weeklySheetsUsed;
@@ -90,7 +90,7 @@ Grado: ${levelConfig.label} (${modeLabel})
   const handleShareWorksheetPdf = async () => {
     if (!isFreeAvailable && points < EXTRA_COST) {
       sound.playError();
-      alert(`⚠️ Has alcanzado el límite de 3 fichas gratis semanales.\nNecesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para desbloquear la Ficha N° ${sheetNum}.\n¡Resuelve ejercicios o ve videos para ganar estrellas!`);
+      alert(`⚠️ Has alcanzado el límite de 1 ficha gratis semanal.\nNecesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para desbloquear la Ficha N° ${sheetNum}.\n¡Resuelve ejercicios o ve videos para ganar estrellas!`);
       return;
     }
 
@@ -196,8 +196,14 @@ Grado: ${levelConfig.label} (${modeLabel})
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print overflow-y-auto animate-fadeIn">
-      <div className="relative max-w-md w-full clay-card p-5 sm:p-6 text-slate-800 space-y-4 my-auto max-h-[90vh] overflow-y-auto">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print overflow-y-auto animate-fadeIn"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-w-md w-full clay-card p-5 sm:p-6 text-slate-800 space-y-4 my-auto max-h-[90vh] overflow-y-auto"
+      >
         
         {/* Botón Cerrar */}
         <button
@@ -230,14 +236,14 @@ Grado: ${levelConfig.label} (${modeLabel})
             : 'clay-card-amber border-amber-300 text-amber-950'
         }`}>
           <div className="flex items-center justify-between text-xs font-black">
-            <span>{isFreeAvailable ? '🎁 Fichas Gratis esta semana:' : '⭐ Límite semanal gratis alcanzado:'}</span>
+            <span>{isFreeAvailable ? '🎁 Ficha Gratis esta semana:' : '⭐ Límite semanal gratis alcanzado:'}</span>
             <span className="bg-white/80 px-2 py-0.5 rounded-full border border-current">
-              {isFreeAvailable ? `${remainingFree} de 3` : '3 de 3 usadas'}
+              {isFreeAvailable ? `${remainingFree} de 1` : '1 de 1 usada'}
             </span>
           </div>
           <p className="text-[11px] font-semibold text-slate-700 leading-tight">
             {isFreeAvailable
-              ? 'Tienes 3 descargas de fichas gratis cada 7 días.'
+              ? 'Tienes 1 descarga de ficha gratis cada 7 días.'
               : `Puedes desbloquear fichas adicionales por ${EXTRA_COST} ⭐ (Tus estrellas: ${points} ⭐).`}
           </p>
         </div>

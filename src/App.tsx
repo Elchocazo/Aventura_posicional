@@ -278,7 +278,11 @@ export const App: React.FC = () => {
       setGamePhase('complete');
       const winPoints = 100 + (streak * 20);
       setPoints(p => p + winPoints);
-      setStreak(s => s + 1);
+      setStreak(s => {
+        const next = s + 1;
+        setMaxStreak(m => Math.max(m, next));
+        return next;
+      });
       setSolvedCount(s => s + 1);
       showToast(`¡Excelente! +${winPoints} ⭐`, 'success');
     } else {

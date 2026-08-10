@@ -56,8 +56,14 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 no-print animate-fadeIn">
-      <div className="clay-card rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-4 border-white text-slate-800 relative max-h-[90vh] overflow-y-auto space-y-5">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 no-print animate-fadeIn"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="clay-card rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border-4 border-white text-slate-800 relative max-h-[90vh] overflow-y-auto space-y-5 my-auto"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
           <div className="flex items-center gap-2.5">
