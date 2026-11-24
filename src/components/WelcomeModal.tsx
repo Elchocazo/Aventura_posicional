@@ -11,6 +11,7 @@ import {
   User,
 } from 'lucide-react';
 import { GradeLevel } from '../types';
+import { PROGRESSIVE_STAGES } from '../data/constants';
 import { sound } from '../utils/sound';
 
 interface WelcomeModalProps {
@@ -25,13 +26,6 @@ interface WelcomeModalProps {
   onStartGame: () => void;
   hasSavedGame?: boolean;
 }
-
-const GRADE_LABELS: Record<GradeLevel, { label: string; desc: string; color: string }> = {
-  2: { label: '2° Grado', desc: 'Decenas y Unidades (10 a 99)', color: 'from-blue-500 to-sky-400' },
-  3: { label: '3° Grado', desc: 'Centenas, D y U (100 a 999)', color: 'from-emerald-500 to-teal-400' },
-  4: { label: '4° Grado', desc: 'Unidades de Mil (1,000 a 9,999)', color: 'from-amber-500 to-orange-400' },
-  5: { label: '5° Grado', desc: 'Decenas de Mil (10,000 a 99,999)', color: 'from-purple-600 to-indigo-500' },
-};
 
 export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   isOpen,
@@ -120,33 +114,34 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
           />
         </div>
 
-        {/* 2. GRADE / DIFFICULTY SELECTOR */}
+        {/* 2. PROGRESSIVE STAGE SELECTOR */}
         <div className="space-y-2 bg-white/90 p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <label className="block text-xs font-black text-slate-700 flex items-center gap-1.5">
             <Compass className="w-4 h-4 text-purple-600" />
-            <span>2. Selecciona tu Grado / Dificultad:</span>
+            <span>2. Elige tu Etapa de Inicio (avanzas automáticamente):</span>
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {(Object.keys(GRADE_LABELS) as unknown as GradeLevel[]).map((lvl) => {
-              const isSelected = currentLevel === Number(lvl);
-              const info = GRADE_LABELS[lvl];
+            {PROGRESSIVE_STAGES.map((stage) => {
+              const isSelected = currentLevel === stage.level;
               return (
                 <button
-                  key={`welcome_lvl_${lvl}`}
-                  onClick={() => handleLevelClick(Number(lvl) as GradeLevel)}
-                  className={`p-3 rounded-2xl border-2 text-left transition-all text-xs font-black flex items-center justify-between ${
+                  key={`welcome_stage_${stage.level}`}
+                  onClick={() => handleLevelClick(stage.level)}
+                  className={`p-3 rounded-2xl border-2 text-left transition-all text-xs font-black flex items-center justify-between gap-1 ${
                     isSelected
-                      ? `bg-gradient-to-r ${info.color} text-white border-white shadow-md scale-[1.02]`
+                      ? `bg-gradient-to-r ${stage.gradient} text-white border-white shadow-md scale-[1.02]`
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-sky-50'
                   }`}
                 >
-                  <div>
-                    <div className="font-extrabold text-sm">{info.label}</div>
-                    <div className={`text-[10px] ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
-                      {info.desc}
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-xs sm:text-sm truncate">
+                      {stage.icon} {stage.shortName}
+                    </div>
+                    <div className={`text-[10px] leading-tight mt-0.5 ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
+                      {stage.desc.split('·')[1]?.trim() || stage.desc}
                     </div>
                   </div>
-                  {isSelected && <CheckCircle2 className="w-5 h-5 shrink-0 text-white" />}
+                  {isSelected && <CheckCircle2 className="w-4 h-4 shrink-0 text-white" />}
                 </button>
               );
             })}

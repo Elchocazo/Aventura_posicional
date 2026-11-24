@@ -25,7 +25,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { DailyMission, GradeLevel, GameMode, PlayerProfile } from '../types';
-import { STORE_ACCESSORIES, STORE_MASCOTS } from '../data/constants';
+import { getStageByLevel, STORE_ACCESSORIES, STORE_MASCOTS } from '../data/constants';
 import { sound } from '../utils/sound';
 
 export interface ProfileDashboardProps {
@@ -231,7 +231,7 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
     },
     {
       id: 'master_10',
-      title: 'Erudito del Grado',
+      title: 'Erudito Matemático',
       desc: 'Completa 10 problemas resueltos',
       icon: '🎓',
       unlocked: solvedCount >= 10,
@@ -519,10 +519,10 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
           "{playerMotto}"
         </p>
 
-        {/* Centered Grade & XP Level Pills Row */}
+        {/* Centered Stage & XP Level Pills Row */}
         <div className="flex items-center justify-center gap-2.5 pt-1">
           <span className="px-3.5 py-1 rounded-full bg-white text-sky-950 border-2 border-sky-300 font-black text-xs shadow-2xs uppercase tracking-tight">
-            {currentLevel}° GRADO ESCOLAR
+            {getStageByLevel(currentLevel).icon} {getStageByLevel(currentLevel).shortName}
           </span>
           <span className="px-3.5 py-1 rounded-full bg-amber-300 text-amber-950 border-2 border-amber-400 font-black text-xs shadow-2xs uppercase tracking-tight">
             NIVEL {rankLevel} XP

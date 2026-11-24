@@ -13,6 +13,12 @@ import { GradeLevel, GameMode, ToastType } from '../types';
 import { LEVEL_CONFIGS } from '../data/constants';
 import { sound } from '../utils/sound';
 import { showRealRewardedAd } from '../utils/admob';
+import {
+  consumeWorkshopAccess,
+  getWorkshopQuota,
+  SINGLE_WORKSHOP_STAR_COST,
+  WEEKLY_FREE_WORKSHOPS,
+} from '../utils/workshops';
 
 interface WorksheetShareModalProps {
   isOpen: boolean;
@@ -52,28 +58,23 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
-
-  // Control de Límite Semanal de Fichas Gratis (3 por semana)
-  const [weeklySheetsUsed, setWeeklySheetsUsed] = useState<number>(() => {
-    const lastReset = parseInt(localStorage.getItem('math_sheet_last_reset') || '0', 10);
-    const now = Date.now();
-    // 7 días en milisegundos = 7 * 24 * 60 * 60 * 1000
-    if (now - lastReset > 604800000) {
-      localStorage.setItem('math_sheet_last_reset', now.toString());
-      localStorage.setItem('math_weekly_sheets_used', '0');
-      return 0;
-    }
-    return parseInt(localStorage.getItem('math_weekly_sheets_used') || '0', 10);
-  });
+  const [quota, setQuota] = useState(() => getWorkshopQuota());
 
   if (!isOpen) return null;
 
-  const FREE_LIMIT = 1;
-  const EXTRA_COST = 500;
-  const isFreeAvailable = weeklySheetsUsed < FREE_LIMIT;
-  const remainingFree = FREE_LIMIT - weeklySheetsUsed;
+  const EXTRA_COST = SINGLE_WORKSHOP_STAR_COST;
+  const hasFreeOrCredit = quota.unlimited || quota.freeRemaining > 0 || quota.credits > 0;
+  const isFreeAvailable = quota.freeRemaining > 0;
 
   const levelConfig = LEVEL_CONFIGS[gradeLevel];
+  const difficultyName =
+    gradeLevel === 2
+      ? 'Básico (2 cifras)'
+      : gradeLevel === 3
+      ? 'Intermedio (3 cifras)'
+      : gradeLevel === 4
+      ? 'Avanzado (4 cifras)'
+      : 'Experto (5 cifras)';
   const modeLabel = currentMode === 'add' ? 'Sumas ➕' : currentMode === 'sub' ? 'Restas ➖' : 'Mixto 🔀';
   const modeSlug = currentMode === 'add' ? 'suma' : currentMode === 'sub' ? 'resta' : 'mixta';
   
@@ -83,17 +84,17 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   const rawPdfUrl = `https://raw.githubusercontent.com/Elchocazo/Aventura_posicional/main/public/fichas/grado${gradeLevel}${modeSlug}/${pdfFileName}`;
   const relativePdfPath = `./fichas/grado${gradeLevel}${modeSlug}/${pdfFileName}`;
 
-  const shareTitle = `🦉 Ficha de Ejercicios N° ${sheetNum} - ${levelConfig.label}`;
-  const shareText = `🦉 *NumiMates - Ficha de Ejercicios N° ${sheetNum}*
-Grado: ${levelConfig.label} (${modeLabel})
+  const shareTitle = `🦉 Taller ${difficultyName} N° ${sheetNum}`;
+  const shareText = `🦉 *NumiMates - Taller ${difficultyName} N° ${sheetNum}*
+Dificultad: ${difficultyName} (${modeLabel})
 12 Ejercicios con Código QR para Calificar.`;
 
   // PROCESO PROFUNDO: Leer PDF -> Escribir en Almacenamiento Celular -> Abrir Menú Nativo Android con PDF Adjunto
   const handleShareWorksheetPdf = async () => {
-    if (!isFreeAvailable && points < EXTRA_COST) {
+    if (!hasFreeOrCredit && points < EXTRA_COST) {
       sound.playError();
       onNotify?.(
-        `⚠️ Necesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para la Ficha N° ${sheetNum}. ¡Resuelve ejercicios o ve un video!`,
+        `⚠️ Necesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para el Taller N° ${sheetNum}. ¡Consigue paquetes en la Tienda o ve un video!`,
         'warning'
       );
       return;
@@ -148,14 +149,12 @@ Grado: ${levelConfig.label} (${modeLabel})
       // Avanzar secuencialmente a la siguiente ficha para la próxima vez
       onIncrementPrintCounter();
 
-      // Descontar uso gratis o estrellas
-      if (isFreeAvailable) {
-        const next = weeklySheetsUsed + 1;
-        setWeeklySheetsUsed(next);
-        localStorage.setItem('math_weekly_sheets_used', next.toString());
-      } else {
+      // Descontar uso gratis, crédito de paquete o estrellas
+      const { usedType } = consumeWorkshopAccess();
+      if (usedType === 'stars') {
         onSpendPoints(EXTRA_COST);
       }
+      setQuota(getWorkshopQuota());
     } catch (err: any) {
       console.error('Error al compartir archivo PDF nativo:', err);
       try {
@@ -229,30 +228,48 @@ Grado: ${levelConfig.label} (${modeLabel})
           </div>
           <div>
             <h2 className="font-black text-lg sm:text-xl text-emerald-950 leading-tight">
-              Descargar y Compartir Ficha PDF
+              Descargar y Compartir Taller PDF
             </h2>
             <p className="text-xs font-bold text-slate-500 mt-0.5">
-              Grado: {levelConfig.label} • {modeLabel}
+              Dificultad: {difficultyName} • {modeLabel}
             </p>
           </div>
         </div>
 
         {/* Freemium Limit Status Badge */}
         <div className={`p-3.5 rounded-2xl border-2 space-y-1 ${
-          isFreeAvailable
+          hasFreeOrCredit
             ? 'clay-card-emerald border-emerald-300 text-emerald-950'
             : 'clay-card-amber border-amber-300 text-amber-950'
         }`}>
           <div className="flex items-center justify-between text-xs font-black">
-            <span>{isFreeAvailable ? '🎁 Ficha Gratis esta semana:' : '⭐ Límite semanal gratis alcanzado:'}</span>
+            <span>
+              {quota.unlimited
+                ? '👑 Pase Ilimitado Activo:'
+                : isFreeAvailable
+                ? '🎁 Talleres Gratis esta semana:'
+                : quota.credits > 0
+                ? '📦 Créditos de Talleres:'
+                : '⭐ Cupo semanal gratis agotado:'}
+            </span>
             <span className="bg-white/80 px-2 py-0.5 rounded-full border border-current">
-              {isFreeAvailable ? `${remainingFree} de 1` : '1 de 1 usada'}
+              {quota.unlimited
+                ? 'Ilimitados'
+                : isFreeAvailable
+                ? `${quota.freeRemaining} de ${WEEKLY_FREE_WORKSHOPS}`
+                : quota.credits > 0
+                ? `${quota.credits} disponibles`
+                : `0 de ${WEEKLY_FREE_WORKSHOPS}`}
             </span>
           </div>
           <p className="text-[11px] font-semibold text-slate-700 leading-tight">
-            {isFreeAvailable
-              ? 'Tienes 1 descarga de ficha gratis cada 7 días.'
-              : `Puedes desbloquear fichas adicionales por ${EXTRA_COST} ⭐ (Tus estrellas: ${points} ⭐).`}
+            {quota.unlimited
+              ? 'Puedes descargar y compartir todos los talleres que necesites.'
+              : isFreeAvailable
+              ? `Tienes ${WEEKLY_FREE_WORKSHOPS} talleres gratis cada semana. Además puedes comprar packs en la Tienda.`
+              : quota.credits > 0
+              ? 'Usarás 1 crédito de tu paquete de talleres comprados.'
+              : `Puedes desbloquear este taller por ${EXTRA_COST} ⭐ (Tienes: ${points} ⭐) o comprar paquetes con descuento en la Tienda.`}
           </p>
         </div>
 
@@ -268,12 +285,12 @@ Grado: ${levelConfig.label} (${modeLabel})
             </span>
           </div>
 
-          <div className="p-3 bg-white/90 rounded-2xl border-2 border-purple-200 flex items-center justify-between">
-            <div className="font-extrabold text-xs text-purple-950">
-              📄 {pdfFileName}
+          <div className="p-3 bg-white/90 rounded-2xl border-2 border-purple-200 flex items-center justify-between gap-2">
+            <div className="font-extrabold text-xs text-purple-950 truncate">
+              📄 Taller {difficultyName} #{sheetNum}
             </div>
-            <span className="text-[11px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-xl">
-              {levelConfig.label}
+            <span className="text-[11px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-xl shrink-0">
+              {modeLabel}
             </span>
           </div>
         </div>
@@ -292,7 +309,7 @@ Grado: ${levelConfig.label} (${modeLabel})
             onClick={handleShareWorksheetPdf}
             disabled={isLoading}
             className={`w-full py-4 px-4 font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg transition-transform active:scale-95 rounded-2xl ${
-              isFreeAvailable
+              hasFreeOrCredit
                 ? 'clay-btn-emerald text-white'
                 : 'clay-btn-amber text-amber-950'
             }`}
@@ -302,15 +319,25 @@ Grado: ${levelConfig.label} (${modeLabel})
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span>Procesando PDF...</span>
               </>
+            ) : quota.unlimited ? (
+              <>
+                <Share2 className="w-5 h-5" />
+                <span>Descargar Taller (Pase Ilimitado) 📲</span>
+              </>
             ) : isFreeAvailable ? (
               <>
                 <Share2 className="w-5 h-5" />
-                <span>Descargar y Compartir Ficha (GRATIS) 📲</span>
+                <span>Descargar y Compartir Taller (GRATIS) 📲</span>
+              </>
+            ) : quota.credits > 0 ? (
+              <>
+                <Share2 className="w-5 h-5" />
+                <span>Usar 1 Crédito de Taller ({quota.credits} disp.) 📲</span>
               </>
             ) : (
               <>
                 <Share2 className="w-5 h-5" />
-                <span>Desbloquear Ficha por {EXTRA_COST} ⭐ 📲</span>
+                <span>Desbloquear Taller por {EXTRA_COST} ⭐ 📲</span>
               </>
             )}
           </button>

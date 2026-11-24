@@ -15,6 +15,15 @@ interface PositionalBoardProps {
   incorrectResultCols: PositionalCol[];
 }
 
+const SHORT_COL_LABEL: Record<PositionalCol, string> = {
+  cm: 'C. Mil',
+  dm: 'D. Mil',
+  um: 'U. Mil',
+  c: 'Cent.',
+  d: 'Dec.',
+  u: 'Unid.',
+};
+
 export const PositionalBoard: React.FC<PositionalBoardProps> = ({
   num1,
   num2,
@@ -66,41 +75,40 @@ export const PositionalBoard: React.FC<PositionalBoardProps> = ({
   };
 
   return (
-    <div className="clay-card p-3.5 sm:p-5 flex flex-col items-center w-full overflow-hidden">
-      <div className="flex items-center justify-between w-full mb-3 px-1">
-        <span className="font-black text-xs sm:text-base text-slate-800 flex items-center gap-1.5">
+    <div className="clay-card p-3 sm:p-4 flex flex-col items-center w-full overflow-hidden">
+      <div className="flex items-center justify-between w-full mb-2.5 px-1">
+        <span className="font-black text-xs sm:text-sm text-slate-800 flex items-center gap-1.5">
           📋 Tablero Posicional
         </span>
-        <span className="text-[11px] sm:text-xs font-black text-sky-800 bg-sky-100/80 border border-sky-200 px-3 py-1 rounded-2xl shadow-2xs">
+        <span className="text-[11px] font-black text-sky-800 bg-sky-100/80 border border-sky-200 px-2.5 py-0.5 rounded-xl shadow-2xs">
           {operation === '+' ? 'Suma (+)' : 'Resta (-)'}
         </span>
       </div>
 
       <div
-        className="grid gap-1.5 sm:gap-2 justify-center items-center py-1 w-full max-w-full"
-        style={{ gridTemplateColumns: `36px repeat(${activeCols.length}, minmax(0, 1fr))` }}
+        className="grid gap-1.5 sm:gap-2 justify-center items-center py-0.5 w-full max-w-full"
+        style={{ gridTemplateColumns: `34px repeat(${activeCols.length}, minmax(0, 1fr))` }}
       >
         {/* Row 1: Header Row */}
-        <div className="w-9 text-center"></div>
+        <div className="w-8 text-center"></div>
         {activeCols.map((col) => {
           const info = COLUMN_INFO[col];
-          const dotEmoji = col === 'u' ? '🔴' : col === 'd' ? '🔵' : col === 'c' ? '🟢' : col === 'um' ? '🟡' : '🟣';
           return (
             <div
               key={`head_${col}`}
-              className={`px-1 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl text-white font-black text-center text-xs sm:text-sm bg-gradient-to-b ${info.headerGradient} shadow-[0_3px_0_rgba(0,0,0,0.15),inset_0_2px_3px_rgba(255,255,255,0.4)] border-2 border-white/40 flex flex-col items-center justify-center`}
+              className={`px-1 py-1.5 rounded-xl text-white font-black text-center bg-gradient-to-b ${info.headerGradient} shadow-[0_3px_0_rgba(0,0,0,0.15),inset_0_2px_3px_rgba(255,255,255,0.4)] border-2 border-white/40 flex flex-col items-center justify-center leading-tight`}
+              title={info.name}
             >
-              <div className="flex items-center gap-0.5 font-black">
-                <span className="text-[10px]">{dotEmoji}</span>
-                <span>{col.toUpperCase()}</span>
-              </div>
-              <div className="text-[9px] sm:text-[10px] font-extrabold opacity-95 truncate">{info.name.split(' ')[0]}</div>
+              <span className="text-xs sm:text-sm font-black tracking-tight">{col.toUpperCase()}</span>
+              <span className="text-[9px] sm:text-[10px] font-bold opacity-95 whitespace-nowrap">
+                {SHORT_COL_LABEL[col]}
+              </span>
             </div>
           );
         })}
 
         {/* Row 2: Carries / Borrow Row */}
-        <div className="w-9 font-black text-[10px] text-pink-600 text-center leading-tight flex flex-col items-center justify-center">
+        <div className="w-8 font-black text-[10px] text-pink-600 text-center leading-tight flex flex-col items-center justify-center">
           <span>💡</span>
           <span>{operation === '-' ? 'Prést.' : 'Llev.'}</span>
         </div>

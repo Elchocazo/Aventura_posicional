@@ -1,5 +1,6 @@
 export type GameMode = 'add' | 'sub' | 'mix';
 export type OperationMode = GameMode;
+export type PracticeStyle = 'story' | 'direct';
 export type GradeLevel = 2 | 3 | 4 | 5;
 
 export type PositionalCol = 'cm' | 'dm' | 'um' | 'c' | 'd' | 'u';
@@ -78,8 +79,12 @@ export interface StoryTheme {
   icon: string;
   addStory: (b1: string, b2: string) => string;
   addQuestion: string;
+  addKeyword: string;
+  addShort: (b1: string, b2: string) => string;
   subStory: (b1: string, b2: string) => string;
   subQuestion: string;
+  subKeyword: string;
+  subShort: (b1: string, b2: string) => string;
 }
 
 export interface ProblemData {
@@ -91,6 +96,8 @@ export interface ProblemData {
     icon: string;
     text: string;
     question: string;
+    keyword?: string;
+    shortText?: string;
   };
 }
 

@@ -19,7 +19,7 @@ const QrScannerModal = lazy(() =>
 const WorksheetShareModal = lazy(() =>
   import('./components/WorksheetShareModal').then((m) => ({ default: m.WorksheetShareModal }))
 );
-import { LEVEL_CONFIGS, STORY_THEMES, ALL_COLUMNS, STORE_THEMES } from './data/constants';
+import { LEVEL_CONFIGS, STORY_THEMES, ALL_COLUMNS, STORE_THEMES, getNextStage } from './data/constants';
 import { OperationMode, GradeLevel, GamePhase, PositionalCol, ProblemData, Chip, PlayerProfile, ToastType } from './types';
 import { sound } from './utils/sound';
 import { initAdMob } from './utils/admob';
@@ -46,7 +46,12 @@ export const App: React.FC = () => {
   const [activeProfileId, setActiveProfileId] = useState<string>(initialProfilesData.current.activeProfileId);
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0];
 
-  const [currentLevel, setCurrentLevel] = useState<GradeLevel>(3);
+  const [currentLevel, setCurrentLevel] = useState<GradeLevel>(2);
+  const [freePracticeMode, setFreePracticeMode] = useState<boolean>(
+    () => localStorage.getItem('math_free_practice_mode') === 'true'
+  );
+  const [workshopLevel, setWorkshopLevel] = useState<GradeLevel | null>(null);
+  const [workshopMode, setWorkshopMode] = useState<OperationMode | null>(null);
   const [currentMode, setCurrentMode] = useState<OperationMode>('add');
   const [points, setPoints] = useState<number>(activeProfile.points);
   const [totalXp, setTotalXp] = useState<number>(activeProfile.totalXp);
@@ -111,6 +116,25 @@ export const App: React.FC = () => {
   const [chips, setChips] = useState<Chip[]>([]);
   const [selectedChipId, setSelectedChipId] = useState<string | null>(null);
   const [incorrectResultCols, setIncorrectResultCols] = useState<PositionalCol[]>([]);
+  const themeDeckRef = useRef<number[]>([]);
+  const lastThemeIdxRef = useRef<number>(-1);
+
+  const pickNextThemeIndex = useCallback(() => {
+    if (themeDeckRef.current.length === 0) {
+      const indices = Array.from({ length: STORY_THEMES.length }, (_, i) => i);
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      if (indices.length > 1 && indices[indices.length - 1] === lastThemeIdxRef.current) {
+        [indices[0], indices[indices.length - 1]] = [indices[indices.length - 1], indices[0]];
+      }
+      themeDeckRef.current = indices;
+    }
+    const nextIdx = themeDeckRef.current.pop()!;
+    lastThemeIdxRef.current = nextIdx;
+    return nextIdx;
+  }, []);
 
   const showToast = useCallback((text: string, type: ToastType = 'info') => {
     setToastMessage({ text, type });
@@ -158,19 +182,26 @@ export const App: React.FC = () => {
     const result = symbol === '+' ? n1 + n2 : n1 - n2;
     const maxDigits = Math.max(n1.toString().length, n2.toString().length, result.toString().length);
     const activeCols = ALL_COLUMNS.slice(ALL_COLUMNS.length - maxDigits);
-    const theme = STORY_THEMES[Math.floor(Math.random() * STORY_THEMES.length)];
+    const theme = STORY_THEMES[pickNextThemeIndex()];
 
     const storyText = symbol === '+' ? theme.addStory(n1.toLocaleString(), n2.toLocaleString()) : theme.subStory(n1.toLocaleString(), n2.toLocaleString());
+    const shortText = symbol === '+' ? theme.addShort(n1.toLocaleString(), n2.toLocaleString()) : theme.subShort(n1.toLocaleString(), n2.toLocaleString());
 
     setProblem({
       num1: n1, num2: n2, operation: symbol, activeCols,
-      story: { icon: theme.icon, text: storyText, question: symbol === '+' ? theme.addQuestion : theme.subQuestion }
+      story: {
+        icon: theme.icon,
+        text: storyText,
+        question: symbol === '+' ? theme.addQuestion : theme.subQuestion,
+        keyword: symbol === '+' ? theme.addKeyword : theme.subKeyword,
+        shortText,
+      }
     });
     setGamePhase('placing');
     setPlacedDigits({});
     setChips([...n1.toString(), ...n2.toString()].sort(() => Math.random() - 0.5).map((v, i) => ({ id: `c${i}`, value: v, used: false })));
     setSelectedChipId(null);
-  }, [currentLevel, currentMode]);
+  }, [currentLevel, currentMode, pickNextThemeIndex]);
 
   const resetGameProgress = useCallback(() => {
     setCurrentProblemIndex(1);
@@ -482,18 +513,30 @@ export const App: React.FC = () => {
       setGamePhase('complete');
       const winPoints = 100 + (streak * 20);
       const nextStreak = streak + 1;
+      const nextSolved = solvedCount + 1;
       setPoints(p => p + winPoints);
       setTotalXp(x => x + winPoints);
       setStreak(nextStreak);
       setMaxStreak(m => Math.max(m, nextStreak));
-      setSolvedCount(s => s + 1);
+      setSolvedCount(nextSolved);
       setDailyHistory(h => recordSolveInHistory(h, winPoints));
+
+      // Avance automático en el sistema progresivo de etapas
+      const nextStage = getNextStage(currentLevel);
+      if (nextStage && nextSolved >= nextStage.requiredSolved) {
+        setCurrentLevel(nextStage.level);
+        sound.playFanfare();
+        setTimeout(() => {
+          showToast(`🎉 ¡Subiste a ${nextStage.name}! ${nextStage.icon}`, 'success');
+        }, 1200);
+      }
+
       setMissions(prev => {
         const { missions: updated, newlyCompletedTitles } = updateMissionsOnSolve(prev, nextStreak);
         if (newlyCompletedTitles.length > 0) {
           setTimeout(() => {
             showToast(`🎯 ¡Misión lista en tu Perfil: ${newlyCompletedTitles[0]}!`, 'info');
-          }, 1600);
+          }, 2200);
         }
         return updated;
       });
@@ -528,7 +571,7 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className={`min-h-screen h-full w-full ${activeBgClass} text-slate-900 pb-28 flex flex-col items-center overflow-y-auto overflow-x-hidden touch-pan-y transition-colors duration-300`}
+      className={`min-h-screen h-full w-full ${activeBgClass} text-slate-900 pb-32 flex flex-col items-center overflow-y-auto overflow-x-hidden touch-pan-y transition-colors duration-300`}
     >
       {showSplash && <SplashScreenOverlay onFinish={handleFinishSplash} />}
 
@@ -546,7 +589,7 @@ export const App: React.FC = () => {
         onOpenQrScanner={() => setIsQrScannerOpen(true)}
       />
 
-      <main className="w-full max-w-lg px-3 mt-4 flex-1 flex flex-col">
+      <main className="w-full max-w-lg px-3 mt-2.5 flex-1 flex flex-col">
         {isOffline && (
           <div className="mb-3 px-3.5 py-2 rounded-2xl bg-amber-100 border-2 border-amber-300 text-amber-950 font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-2xs">
             <span>📡 Modo sin conexión — puedes seguir jugando normalmente</span>
@@ -575,23 +618,24 @@ export const App: React.FC = () => {
             <p className="font-black text-sky-800 animate-pulse">Cargando aventura...</p>
           </div>
         ) : (
-          <div className="space-y-4 animate-fadeIn">
+          <div className="space-y-3 animate-fadeIn">
             <StoryCard
               problem={problem}
               currentProblemIndex={currentProblemIndex}
-              gradeLabel={LEVEL_CONFIGS[currentLevel].label}
+              currentLevel={currentLevel}
+              solvedCount={solvedCount}
               gamePhase={gamePhase}
             />
             <DigitsBank chips={chips} selectedChipId={selectedChipId} onSelectChip={setSelectedChipId} gamePhase={gamePhase} />
             <PositionalBoard num1={problem.num1} num2={problem.num2} operation={problem.operation} activeCols={problem.activeCols} gamePhase={gamePhase} placedDigits={placedDigits} selectedDigit={selectedChipId ? chips.find(c => c.id === selectedChipId)?.value || null : null} onCellClick={handleCellClick} incorrectResultCols={incorrectResultCols} />
 
-            <div className="flex gap-3 justify-center py-4">
-              <button onClick={resetGameProgress} className="bg-slate-200 hover:bg-slate-300 p-4 rounded-3xl font-black text-xl shadow-md active:scale-95 transition-all">🔄</button>
+            <div className="flex gap-2.5 justify-center py-2">
+              <button onClick={resetGameProgress} className="bg-slate-200 hover:bg-slate-300 px-4 py-3.5 rounded-2xl font-black text-xl shadow-md active:scale-95 transition-all" title="Reiniciar ejercicio">🔄</button>
               {gamePhase === 'placing' && (
-                <button onClick={() => { sound.playSuccess(); setGamePhase('calculating'); setSelectedChipId(null); }} className="bg-gradient-to-r from-sky-400 to-blue-600 text-white px-8 py-4 rounded-3xl font-black text-lg shadow-xl flex-1 active:scale-95 transition-all">¡Acomodado! 🚀</button>
+                <button onClick={() => { sound.playSuccess(); setGamePhase('calculating'); setSelectedChipId(null); }} className="bg-gradient-to-r from-sky-400 to-blue-600 text-white px-6 py-3.5 rounded-2xl font-black text-base sm:text-lg shadow-xl flex-1 active:scale-95 transition-all">¡Acomodado! 🚀</button>
               )}
               {gamePhase === 'calculating' && (
-                <button onClick={handleCheckResult} className="bg-gradient-to-r from-emerald-400 to-teal-600 text-white px-8 py-4 rounded-3xl font-black text-lg shadow-xl flex-1 active:scale-95 transition-all">¡Comprobar! ✅</button>
+                <button onClick={handleCheckResult} className="bg-gradient-to-r from-emerald-400 to-teal-600 text-white px-6 py-3.5 rounded-2xl font-black text-base sm:text-lg shadow-xl flex-1 active:scale-95 transition-all">¡Comprobar! ✅</button>
               )}
               {gamePhase === 'complete' && (
                 <button
@@ -612,7 +656,7 @@ export const App: React.FC = () => {
                       generateProblem();
                     }
                   }}
-                  className="bg-gradient-to-r from-amber-400 to-orange-500 text-white px-8 py-4 rounded-3xl font-black text-lg shadow-xl flex-1 animate-pulse"
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 text-white px-6 py-3.5 rounded-2xl font-black text-base sm:text-lg shadow-xl flex-1 animate-pulse"
                 >
                   Siguiente ➡️
                 </button>
@@ -638,7 +682,7 @@ export const App: React.FC = () => {
       {/* WelcomeModal: solo al primer inicio */}
       <WelcomeModal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} playerName={playerName} onUpdatePlayerName={setPlayerName} equippedMascot={equippedMascot} equippedAccessory={equippedAccessory} currentLevel={currentLevel} onSelectLevel={setCurrentLevel} onStartGame={resetGameProgress} />
 
-      {/* Niveles/Opciones: niveles y modos de juego */}
+      {/* Ruta Progresiva y Modos */}
       <OptionsMenuModal
         isOpen={isOptionsOpen}
         onClose={() => setIsOptionsOpen(false)}
@@ -646,6 +690,15 @@ export const App: React.FC = () => {
         onToggleSound={handleToggleSound}
         currentLevel={currentLevel}
         currentMode={currentMode}
+        solvedCount={solvedCount}
+        freePracticeMode={freePracticeMode}
+        onToggleFreePractice={() => {
+          setFreePracticeMode((prev) => {
+            const next = !prev;
+            localStorage.setItem('math_free_practice_mode', next ? 'true' : 'false');
+            return next;
+          });
+        }}
         onChangeLevel={(l) => { setCurrentLevel(l); generateProblem(l, currentMode); }}
         onChangeMode={(m) => { setCurrentMode(m); generateProblem(currentLevel, m); }}
         onResetStats={() => { setSolvedCount(0); setStreak(0); setMaxStreak(0); setTimerSeconds(0); }}
@@ -724,6 +777,13 @@ export const App: React.FC = () => {
           else if (i.category === 'theme') setEquippedTheme(i.id);
         }}
         onAwardPoints={(a) => setPoints(p => p + a)}
+        onSpendPoints={(amt) => setPoints(p => Math.max(0, p - amt))}
+        onOpenWorkshops={(lvl, mode) => {
+          setWorkshopLevel(lvl);
+          setWorkshopMode(mode);
+          setIsStoreOpen(false);
+          setIsWorksheetShareOpen(true);
+        }}
         onNotify={showToast}
       />
       <TeacherReportModal
@@ -757,9 +817,13 @@ export const App: React.FC = () => {
         {isWorksheetShareOpen && (
           <WorksheetShareModal
             isOpen={isWorksheetShareOpen}
-            onClose={() => setIsWorksheetShareOpen(false)}
-            gradeLevel={currentLevel}
-            currentMode={currentMode}
+            onClose={() => {
+              setIsWorksheetShareOpen(false);
+              setWorkshopLevel(null);
+              setWorkshopMode(null);
+            }}
+            gradeLevel={workshopLevel || currentLevel}
+            currentMode={workshopMode || currentMode}
             printCounter={printCounter}
             onIncrementPrintCounter={() => {
               setPrintCounter(c => {
