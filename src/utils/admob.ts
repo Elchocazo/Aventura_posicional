@@ -3,6 +3,11 @@ import { AdMob, RewardAdOptions, RewardAdPluginEvents } from '@capacitor-communi
 // ID real de Google AdMob para anuncios de video recompensados
 export const ADMOB_REWARDED_AD_ID = 'ca-app-pub-7575796190560022/7666564537';
 
+export interface RewardedAdResult {
+  rewarded: boolean;
+  reason?: 'completed' | 'dismissed' | 'offline' | 'error';
+}
+
 export const initAdMob = async () => {
   try {
     await AdMob.initialize({
@@ -13,15 +18,31 @@ export const initAdMob = async () => {
   }
 };
 
-export const showRealRewardedAd = async (): Promise<boolean> => {
+export const showRealRewardedAd = async (): Promise<RewardedAdResult> => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return { rewarded: false, reason: 'offline' };
+  }
+
   return new Promise(async (resolve) => {
     let rewarded = false;
-    let dismissedListener: any = null;
-    let rewardListener: any = null;
+    let settled = false;
+    let dismissedListener: { remove: () => void } | null = null;
+    let rewardListener: { remove: () => void } | null = null;
 
     const cleanup = () => {
-      if (rewardListener) try { rewardListener.remove(); } catch(e){}
-      if (dismissedListener) try { dismissedListener.remove(); } catch(e){}
+      if (rewardListener) {
+        try { rewardListener.remove(); } catch { /* ignore */ }
+      }
+      if (dismissedListener) {
+        try { dismissedListener.remove(); } catch { /* ignore */ }
+      }
+    };
+
+    const finish = (result: RewardedAdResult) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
     };
 
     try {
@@ -34,18 +55,18 @@ export const showRealRewardedAd = async (): Promise<boolean> => {
       });
 
       dismissedListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
-        cleanup();
-        resolve(rewarded);
+        finish({ rewarded, reason: rewarded ? 'completed' : 'dismissed' });
       });
 
       await AdMob.prepareRewardVideoAd(options);
       const res = await AdMob.showRewardVideoAd();
       if (res) rewarded = true;
+      if (rewarded) {
+        finish({ rewarded: true, reason: 'completed' });
+      }
     } catch (e) {
       console.error('Error al mostrar anuncio de AdMob:', e);
-      cleanup();
-      // En caso de fallo o prueba sin red, otorgar recompensa para no bloquear la experiencia del usuario
-      resolve(true);
+      finish({ rewarded: false, reason: 'error' });
     }
   });
 };

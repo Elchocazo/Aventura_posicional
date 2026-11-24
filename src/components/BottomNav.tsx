@@ -7,15 +7,20 @@ interface BottomNavProps {
   activeTab: TabType;
   onChangeTab: (tab: TabType) => void;
   mascotIcon?: string;
+  hasClaimableMission?: boolean;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onChangeTab,
   mascotIcon = '🐶',
+  hasClaimableMission = false,
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 no-print px-3 pb-2 pt-1">
+    <nav
+      className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 no-print px-3 pt-1"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 10px)' }}
+    >
       <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-[0_-4px_25px_rgba(0,0,0,0.1)] border-2 border-slate-100 px-2 py-1 flex items-center justify-around relative">
         
         {/* 1. Inicio (Home) */}
@@ -49,12 +54,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           onClick={() => onChangeTab('profile')}
           className="flex flex-col items-center justify-center relative -mt-5 group"
         >
-          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-2xl sm:text-3xl border-3 border-white shadow-md transition-transform active:scale-90 group-hover:scale-105 ${
+          <div className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-2xl sm:text-3xl border-3 border-white shadow-md transition-transform active:scale-90 group-hover:scale-105 ${
             activeTab === 'profile'
               ? 'bg-gradient-to-tr from-sky-400 via-sky-500 to-teal-400 ring-4 ring-sky-300 shadow-sky-300/50'
               : 'bg-gradient-to-tr from-amber-200 via-sky-200 to-indigo-200'
           }`}>
             <span className="drop-shadow-xs animate-float">{mascotIcon}</span>
+            {hasClaimableMission && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-rose-500 border-2 border-white rounded-full animate-ping" />
+            )}
+            {hasClaimableMission && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-rose-500 border-2 border-white rounded-full" />
+            )}
           </div>
           <span className={`text-[10px] sm:text-[11px] mt-0.5 ${activeTab === 'profile' ? 'font-black text-sky-700' : 'font-semibold text-slate-500'}`}>
             Perfil

@@ -60,6 +60,8 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const scanCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastScanTimeRef = useRef<number>(0);
 
   const [step, setStep] = useState<'qr_scan' | 'capture_worksheet' | 'analyzing' | 'results'>('qr_scan');
   const [scanStatus, setScanStatus] = useState<string>('🎥 Enfoca el Código QR de la hoja para cargar la clave de respuestas...');
@@ -112,12 +114,19 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   };
 
   const scanQrFrame = () => {
+    const now = performance.now();
     const video = videoRef.current;
-    if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
+    if (video && video.readyState === video.HAVE_ENOUGH_DATA && now - lastScanTimeRef.current >= 120) {
+      lastScanTimeRef.current = now;
+      if (!scanCanvasRef.current) {
+        scanCanvasRef.current = document.createElement('canvas');
+      }
+      const canvas = scanCanvasRef.current;
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);

@@ -19,8 +19,13 @@ import {
   Palette,
   Heart,
   BookOpen,
+  Users,
+  UserPlus,
+  Gift,
+  Trash2,
 } from 'lucide-react';
-import { GradeLevel, GameMode } from '../types';
+import { DailyMission, GradeLevel, GameMode, PlayerProfile } from '../types';
+import { STORE_ACCESSORIES, STORE_MASCOTS } from '../data/constants';
 import { sound } from '../utils/sound';
 
 export interface ProfileDashboardProps {
@@ -32,6 +37,11 @@ export interface ProfileDashboardProps {
   equippedAccessory: string;
   unlockedItems: string[];
   points: number;
+  totalXp: number;
+  dailyStreak: number;
+  missions: DailyMission[];
+  profiles: PlayerProfile[];
+  activeProfileId: string;
   streak: number;
   maxStreak: number;
   solvedCount: number;
@@ -39,6 +49,10 @@ export interface ProfileDashboardProps {
   currentLevel: GradeLevel;
   currentMode: GameMode;
   onUpdateProfile: (name: string, title: string, theme: string, motto: string) => void;
+  onSwitchProfile: (profileId: string) => void;
+  onCreateProfile: (name: string) => void;
+  onDeleteProfile?: (profileId: string) => void;
+  onClaimMission: (missionId: string) => void;
   onEquipMascot: (mascot: string) => void;
   onEquipAccessory: (accessory: string) => void;
   onOpenStore: () => void;
@@ -75,6 +89,11 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
   equippedAccessory,
   unlockedItems,
   points,
+  totalXp,
+  dailyStreak,
+  missions,
+  profiles,
+  activeProfileId,
   streak,
   maxStreak,
   solvedCount,
@@ -82,6 +101,10 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
   currentLevel,
   currentMode,
   onUpdateProfile,
+  onSwitchProfile,
+  onCreateProfile,
+  onDeleteProfile,
+  onClaimMission,
   onEquipMascot,
   onEquipAccessory,
   onOpenStore,
@@ -94,6 +117,9 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
   const [editTitle, setEditTitle] = useState(playerTitle);
   const [editTheme, setEditTheme] = useState(playerTheme);
   const [editMotto, setEditMotto] = useState(playerMotto);
+  const [isAddingProfile, setIsAddingProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [confirmDeleteProfileId, setConfirmDeleteProfileId] = useState<string | null>(null);
 
   // Active theme styling calculation
   const currentThemeObj =
@@ -110,8 +136,8 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
     setIsEditing(false);
   };
 
-  // XP level calculation (Level 1: 0-200, Level 2: 200-500, Level 3: 500-1000, Level 4: 1000-2000, Level 5: 2000+)
-  const currentXp = points;
+  // XP level calculation uses totalXp so spending stars in the store NEVER lowers rank!
+  const currentXp = totalXp;
   let rankLevel = 1;
   let nextRankXp = 200;
   let prevRankXp = 0;
@@ -144,11 +170,12 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
     Math.max(5, Math.round(((currentXp - prevRankXp) / (nextRankXp - prevRankXp)) * 100))
   );
 
-  // Filter mascots and accessories from unlockedItems
-  const availableMascots = ['🦉', '🦄', '🚀', '🤖', '🦁'].filter((m) => unlockedItems.includes(m));
-  const availableAccessories = ['🎓', '👑', '🎩', '🥽', 'Sin accesorio'].filter(
-    (a) => a === 'Sin accesorio' || unlockedItems.includes(a)
-  );
+  // Filter ALL store mascots and accessories from unlockedItems
+  const availableMascots = STORE_MASCOTS.filter((m) => m.cost === 0 || unlockedItems.includes(m.id)).map((m) => m.id);
+  const availableAccessories = [
+    ...STORE_ACCESSORIES.filter((a) => a.cost === 0 || unlockedItems.includes(a.id)).map((a) => a.id),
+    'Sin accesorio',
+  ];
 
   // Dynamic Badges Calculations (12 Achievements with progress)
   const achievements = [
@@ -185,20 +212,20 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
     {
       id: 'collector_500',
       title: 'Coleccionista de Estrellas',
-      desc: 'Acumula 500 estrellas de experiencia',
+      desc: 'Acumula 500 puntos de experiencia',
       icon: '⭐',
-      unlocked: points >= 500,
-      current: Math.min(points, 500),
+      unlocked: totalXp >= 500,
+      current: Math.min(totalXp, 500),
       target: 500,
       reward: 150,
     },
     {
       id: 'collector_1500',
       title: 'Tesorero Real',
-      desc: 'Junta 1,500 estrellas de experiencia',
+      desc: 'Junta 1,500 puntos de experiencia',
       icon: '💎',
-      unlocked: points >= 1500,
-      current: Math.min(points, 1500),
+      unlocked: totalXp >= 1500,
+      current: Math.min(totalXp, 1500),
       target: 1500,
       reward: 300,
     },
@@ -267,8 +294,8 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
       title: 'Escáner Inteligente',
       desc: 'Califica fichas impresas con la Cámara e IA',
       icon: '📷',
-      unlocked: points >= 300, // Triggered when scanning or having 300+ XP from sheets
-      current: Math.min(points, 300),
+      unlocked: totalXp >= 300, // Triggered when scanning or having 300+ XP from sheets
+      current: Math.min(totalXp, 300),
       target: 300,
       reward: 300,
     },
@@ -279,6 +306,186 @@ export const ProfileDashboard: React.FC<ProfileDashboardProps> = ({
 
   return (
     <div className="space-y-4 text-slate-800 animate-fadeIn pb-16">
+      {/* 0. MULTI-PROFILE SWITCHER (Hermanos / Estudiantes) */}
+      <div className="clay-card p-3.5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="font-black text-xs text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-indigo-600" />
+            <span>Perfiles en este dispositivo</span>
+          </span>
+          {profiles.length < 4 && (
+            <button
+              onClick={() => {
+                sound.playSelect();
+                setIsAddingProfile(!isAddingProfile);
+              }}
+              className="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-black text-[11px] flex items-center gap-1 active:scale-95 transition-all"
+            >
+              <UserPlus className="w-3.5 h-3.5" /> Nuevo
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+          {profiles.map((p) => {
+            const isActive = p.id === activeProfileId;
+            return (
+              <div key={p.id} className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => {
+                    if (!isActive) {
+                      sound.playSelect();
+                      onSwitchProfile(p.id);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border-2 transition-all active:scale-95 ${
+                    isActive
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                  }`}
+                >
+                  <span className="text-lg leading-none">{p.equippedMascot}</span>
+                  <span className="font-black text-xs max-w-[90px] truncate">{p.name}</span>
+                </button>
+                {profiles.length > 1 && onDeleteProfile && (
+                  <button
+                    onClick={() => {
+                      sound.playSelect();
+                      setConfirmDeleteProfileId(p.id);
+                    }}
+                    className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-200 active:scale-90 transition-all"
+                    title={`Eliminar perfil ${p.name}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {confirmDeleteProfileId && onDeleteProfile && (
+          <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-2.5 flex items-center justify-between gap-2 animate-fadeIn">
+            <span className="text-[11px] font-black text-rose-900">
+              ¿Eliminar perfil "{profiles.find((x) => x.id === confirmDeleteProfileId)?.name}"?
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setConfirmDeleteProfileId(null)}
+                className="px-2.5 py-1 bg-white text-slate-700 font-black text-[11px] rounded-xl border border-slate-200"
+              >
+                No
+              </button>
+              <button
+                onClick={() => {
+                  sound.playPop();
+                  onDeleteProfile(confirmDeleteProfileId);
+                  setConfirmDeleteProfileId(null);
+                }}
+                className="px-2.5 py-1 bg-rose-600 text-white font-black text-[11px] rounded-xl"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isAddingProfile && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const clean = newProfileName.trim();
+              if (!clean) return;
+              sound.playSuccess();
+              onCreateProfile(clean);
+              setNewProfileName('');
+              setIsAddingProfile(false);
+            }}
+            className="flex gap-2 pt-1"
+          >
+            <input
+              type="text"
+              maxLength={18}
+              value={newProfileName}
+              onChange={(e) => setNewProfileName(e.target.value)}
+              placeholder="Nombre del estudiante..."
+              className="flex-1 px-3 py-2 rounded-xl border-2 border-indigo-200 bg-white text-xs font-bold outline-none focus:border-indigo-500"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="px-3.5 py-2 clay-btn-purple text-xs font-black"
+            >
+              Crear
+            </button>
+          </form>
+        )}
+      </div>
+
+      {/* 0.5. DAILY STREAK & DAILY MISSIONS */}
+      <div className="clay-card-amber p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="font-black text-xs uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+            <Gift className="w-4 h-4 text-amber-600" />
+            <span>Misiones Diarias</span>
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-orange-500 text-white font-black text-[11px] flex items-center gap-1 shadow-2xs">
+            <Flame className="w-3.5 h-3.5 fill-amber-200" />
+            {dailyStreak} {dailyStreak === 1 ? 'día seguido' : 'días seguidos'}
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {missions.map((m) => {
+            const pct = Math.min(100, Math.round((m.progress / m.target) * 100));
+            const isComplete = m.progress >= m.target;
+            return (
+              <div
+                key={m.id}
+                className="bg-white/90 rounded-2xl p-2.5 border border-amber-200/80 flex items-center justify-between gap-2.5"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between text-xs font-black text-slate-800">
+                    <span className="truncate">{m.title}</span>
+                    <span className="text-[11px] text-amber-700 shrink-0 ml-2">
+                      {m.progress}/{m.target}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-amber-100 rounded-full overflow-hidden mt-1.5">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        isComplete ? 'bg-emerald-500' : 'bg-amber-400'
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {m.claimed ? (
+                  <span className="px-2.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-black text-[11px] shrink-0">
+                    ✓ Listo
+                  </span>
+                ) : isComplete ? (
+                  <button
+                    onClick={() => {
+                      sound.playFanfare();
+                      onClaimMission(m.id);
+                    }}
+                    className="px-3 py-1.5 clay-btn-emerald font-black text-[11px] shrink-0 animate-pulse"
+                  >
+                    +{m.reward} ⭐
+                  </button>
+                ) : (
+                  <span className="px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-black text-[11px] shrink-0">
+                    +{m.reward} ⭐
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 1. DASHBOARD HEADER CARD (USER IDENTITY) */}
       <div className="clay-card bg-[#fffdf8] p-5 sm:p-6 text-center space-y-3.5 relative transition-all border-4 border-amber-200/90 shadow-md">
         {/* Top Centered Name + Sparkle + Edit Pencil Icon */}

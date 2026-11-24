@@ -2,7 +2,22 @@
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  public enabled: boolean = true;
+  public enabled: boolean =
+    typeof window !== 'undefined' ? localStorage.getItem('math_sound_enabled') !== 'false' : true;
+
+  public setEnabled(value: boolean) {
+    this.enabled = value;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('math_sound_enabled', value ? 'true' : 'false');
+    }
+    if (!value && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // ignore
+      }
+    }
+  }
 
   private init() {
     if (!this.ctx && typeof window !== 'undefined') {

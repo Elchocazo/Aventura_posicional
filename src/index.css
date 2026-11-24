@@ -41,6 +41,13 @@
   border: 2px solid #f3e8ff;
 }
 
+.clay-card-emerald {
+  background: #ecfdf5;
+  border-radius: 1.5rem;
+  box-shadow: 5px 7px 16px rgba(167, 243, 208, 0.55), inset -3px -3px 6px rgba(5, 150, 105, 0.06), inset 3px 3px 8px rgba(255, 255, 255, 1);
+  border: 2px solid #d1fae5;
+}
+
 .clay-card-rose {
   background: #fff1f2;
   border-radius: 1.25rem;

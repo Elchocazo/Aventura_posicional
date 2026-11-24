@@ -1,10 +1,12 @@
 import React from 'react';
-import { X, Printer, RotateCcw, Award, CheckCircle, Flame, Star, Camera, Share2 } from 'lucide-react';
-import { TeacherReportStats } from '../types';
+import { X, RotateCcw, Award, CheckCircle, Flame, Star, Camera, Share2, Calendar } from 'lucide-react';
+import { DailyStatsEntry, TeacherReportStats } from '../types';
 import { sound } from '../utils/sound';
+import { getLast7DayKeys } from '../utils/profiles';
 
 interface TeacherReportViewProps {
   stats: TeacherReportStats;
+  dailyHistory?: DailyStatsEntry[];
   onResetStats: () => void;
   onPrintWorksheet: () => void;
   onOpenQrScanner?: () => void;
@@ -12,10 +14,26 @@ interface TeacherReportViewProps {
 
 export const TeacherReportView: React.FC<TeacherReportViewProps> = ({
   stats,
+  dailyHistory = [],
   onResetStats,
   onPrintWorksheet,
   onOpenQrScanner,
 }) => {
+  const last7Days = getLast7DayKeys().map((day) => {
+    const found = dailyHistory.find((h) => h.date === day.key);
+    return {
+      ...day,
+      solved: found?.solved || 0,
+      errors: found?.errors || 0,
+    };
+  });
+  const maxDailySolved = Math.max(5, ...last7Days.map((d) => d.solved));
+  const weeklyTotalSolved = last7Days.reduce((acc, d) => acc + d.solved, 0);
+  const weeklyTotalErrors = last7Days.reduce((acc, d) => acc + d.errors, 0);
+  const weeklyAccuracy =
+    weeklyTotalSolved + weeklyTotalErrors > 0
+      ? Math.round((weeklyTotalSolved / (weeklyTotalSolved + weeklyTotalErrors)) * 100)
+      : 0;
   return (
     <div className="clay-card p-5 sm:p-6 text-slate-800 space-y-4">
       <div className="flex items-center gap-2.5 border-b-2 border-slate-100 pb-3 pr-10">
@@ -61,7 +79,45 @@ export const TeacherReportView: React.FC<TeacherReportViewProps> = ({
             <Star className="w-6 h-6 fill-purple-400" />
           </div>
           <div className="font-black text-2xl text-purple-950">{stats.points}</div>
-          <div className="text-[11px] font-black text-purple-800 uppercase tracking-tight">Puntos Totales</div>
+          <div className="text-[11px] font-black text-purple-800 uppercase tracking-tight">Estrellas</div>
+        </div>
+      </div>
+
+      {/* Weekly Progress Chart */}
+      <div className="clay-card-sky p-4 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="font-black text-xs text-sky-950 flex items-center gap-1.5">
+            <Calendar className="w-4 h-4 text-sky-600" />
+            <span>Resumen Semanal (7 días)</span>
+          </span>
+          <span className="text-[11px] font-black text-sky-700 bg-white px-2 py-0.5 rounded-full border border-sky-200">
+            {weeklyTotalSolved} resueltos · {weeklyAccuracy}%
+          </span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5 items-end h-24 pt-2">
+          {last7Days.map((day) => {
+            const heightPct = day.solved > 0 ? Math.max(18, Math.round((day.solved / maxDailySolved) * 100)) : 8;
+            return (
+              <div key={day.key} className="flex flex-col items-center justify-end h-full gap-1">
+                <span className="text-[10px] font-black text-sky-800">{day.solved > 0 ? day.solved : ''}</span>
+                <div className="w-full flex items-end justify-center h-14">
+                  <div
+                    className={`w-full max-w-[26px] rounded-t-xl transition-all ${
+                      day.solved > 0
+                        ? 'bg-gradient-to-t from-sky-500 to-indigo-400 shadow-xs'
+                        : 'bg-sky-200/60'
+                    }`}
+                    style={{ height: `${heightPct}%` }}
+                    title={`${day.label}: ${day.solved} ejercicios`}
+                  />
+                </div>
+                <span className={`text-[10px] font-bold ${day.label === 'Hoy' ? 'text-indigo-700 font-black' : 'text-slate-500'}`}>
+                  {day.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

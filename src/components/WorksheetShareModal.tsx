@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-import { GradeLevel, GameMode } from '../types';
+import { GradeLevel, GameMode, ToastType } from '../types';
 import { LEVEL_CONFIGS } from '../data/constants';
 import { sound } from '../utils/sound';
 import { showRealRewardedAd } from '../utils/admob';
@@ -24,6 +24,7 @@ interface WorksheetShareModalProps {
   points: number;
   onSpendPoints: (amount: number) => void;
   onAwardPoints: (amount: number) => void;
+  onNotify?: (text: string, type?: ToastType) => void;
 }
 
 // Convertidor de ArrayBuffer a Base64 para escribir el archivo nativo en Android
@@ -47,6 +48,7 @@ export const WorksheetShareModal: React.FC<WorksheetShareModalProps> = ({
   points,
   onSpendPoints,
   onAwardPoints,
+  onNotify,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -90,7 +92,10 @@ Grado: ${levelConfig.label} (${modeLabel})
   const handleShareWorksheetPdf = async () => {
     if (!isFreeAvailable && points < EXTRA_COST) {
       sound.playError();
-      alert(`⚠️ Has alcanzado el límite de 1 ficha gratis semanal.\nNecesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para desbloquear la Ficha N° ${sheetNum}.\n¡Resuelve ejercicios o ve videos para ganar estrellas!`);
+      onNotify?.(
+        `⚠️ Necesitas ${EXTRA_COST} ⭐ (tienes ${points} ⭐) para la Ficha N° ${sheetNum}. ¡Resuelve ejercicios o ve un video!`,
+        'warning'
+      );
       return;
     }
 
@@ -177,18 +182,21 @@ Grado: ${levelConfig.label} (${modeLabel})
     setIsLoading(true);
     setStatusMsg('📺 Cargando anuncio de Google AdMob...');
     try {
-      const success = await showRealRewardedAd();
-      if (success) {
+      const result = await showRealRewardedAd();
+      if (result.rewarded) {
         onAwardPoints(100);
         sound.playSuccess();
-        alert('🎉 ¡Felicidades! Ganaste +100 ⭐ por ver el video de Google AdMob.');
+        onNotify?.('🎉 ¡Felicidades! Ganaste +100 ⭐ por ver el video completo.', 'success');
+      } else if (result.reason === 'offline') {
+        sound.playError();
+        onNotify?.('📡 Sin conexión a internet para cargar el video.', 'warning');
+      } else if (result.reason === 'dismissed') {
+        sound.playError();
+        onNotify?.('📺 Debes terminar de ver el video para recibir +100 ⭐.', 'warning');
       } else {
-        onAwardPoints(100);
-        sound.playSuccess();
-        alert('🎉 ¡Ganaste +100 ⭐!');
+        sound.playError();
+        onNotify?.('📺 Anuncio no disponible ahora. Intenta de nuevo en unos segundos.', 'error');
       }
-    } catch (e) {
-      onAwardPoints(100);
     } finally {
       setIsLoading(false);
       setStatusMsg(null);

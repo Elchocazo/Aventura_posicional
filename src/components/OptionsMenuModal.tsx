@@ -7,6 +7,7 @@ import {
   X,
   Check,
   ShieldAlert,
+  ShieldCheck,
   Layers,
   Sparkles,
 } from 'lucide-react';
@@ -52,6 +53,7 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
   onOpenWelcome,
 }) => {
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
 
   if (!isOpen) return null;
 
@@ -235,6 +237,29 @@ export const OptionsMenuModal: React.FC<OptionsMenuModalProps> = ({
                   Sí, Reiniciar
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* 4.5. POLÍTICA DE PRIVACIDAD Y SEGURIDAD INFANTIL */}
+        <div className="pt-1 border-t border-slate-200/80 space-y-2">
+          <button
+            onClick={() => {
+              sound.playSelect();
+              setShowPrivacyInfo((v) => !v);
+            }}
+            className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-2 border-indigo-200 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-colors"
+          >
+            <ShieldCheck className="w-4 h-4 text-indigo-600" />
+            <span>{showPrivacyInfo ? 'Ocultar Política de Privacidad' : 'Política de Privacidad y Seguridad'}</span>
+          </button>
+
+          {showPrivacyInfo && (
+            <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3.5 text-[11px] text-slate-600 space-y-1.5 leading-relaxed animate-fadeIn">
+              <p className="font-black text-slate-800">Privacidad en NumiMates:</p>
+              <p>• <strong>Datos locales:</strong> Los perfiles, estrellas, rachas y progreso se guardan únicamente en este dispositivo. No recopilamos datos personales identificables de menores.</p>
+              <p>• <strong>Cámara (QR):</strong> El permiso de cámara se usa exclusivamente para escanear códigos QR de fichas educativas impresas; no grabamos ni enviamos fotos a servidores externos.</p>
+              <p>• <strong>Anuncios y Compras:</strong> Los anuncios recompensados son voluntarios (Google AdMob) y las compras de paquetes en Google Play están protegidas por Control Parental.</p>
             </div>
           )}
         </div>

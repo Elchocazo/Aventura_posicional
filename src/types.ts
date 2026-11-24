@@ -30,8 +30,49 @@ export interface StoreItem {
   name: string;
   cost: number;
   icon: string;
-  category: 'mascot' | 'accessory';
+  category: 'mascot' | 'accessory' | 'theme';
+  bgClass?: string;
 }
+
+export interface DailyMission {
+  id: string;
+  title: string;
+  target: number;
+  progress: number;
+  reward: number;
+  claimed: boolean;
+  type: 'solve' | 'streak' | 'perfect';
+}
+
+export interface DailyStatsEntry {
+  date: string; // YYYY-MM-DD
+  solved: number;
+  errors: number;
+  xp: number;
+}
+
+export interface PlayerProfile {
+  id: string;
+  name: string;
+  title: string;
+  theme: string;
+  motto: string;
+  points: number;
+  totalXp: number;
+  equippedMascot: string;
+  equippedAccessory: string;
+  equippedTheme: string;
+  unlockedItems: string[];
+  solvedCount: number;
+  maxStreak: number;
+  dailyStreak: number;
+  lastActiveDate: string;
+  dailyHistory: DailyStatsEntry[];
+  missionsDate: string;
+  missions: DailyMission[];
+}
+
+export type ToastType = 'info' | 'success' | 'error' | 'warning';
 
 export interface StoryTheme {
   icon: string;

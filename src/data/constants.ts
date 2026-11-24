@@ -188,3 +188,12 @@ export const STORE_ACCESSORIES: StoreItem[] = [
   { id: '🏆', name: 'Trofeo Campeón', cost: 1200, icon: '🏆', category: 'accessory' },
 ];
 
+export const STORE_THEMES: StoreItem[] = [
+  { id: 'theme_sky', name: 'Cielo Numi', cost: 0, icon: '☁️', category: 'theme', bgClass: 'bg-sky-50' },
+  { id: 'theme_mint', name: 'Bosque Menta', cost: 200, icon: '🌿', category: 'theme', bgClass: 'bg-emerald-50' },
+  { id: 'theme_lavender', name: 'Galaxia Lila', cost: 350, icon: '🔮', category: 'theme', bgClass: 'bg-purple-50' },
+  { id: 'theme_sunset', name: 'Atardecer Sol', cost: 450, icon: '🌅', category: 'theme', bgClass: 'bg-amber-50' },
+  { id: 'theme_rose', name: 'Algodón Rosa', cost: 550, icon: '🌸', category: 'theme', bgClass: 'bg-rose-50' },
+  { id: 'theme_ocean', name: 'Océano Turquesa', cost: 700, icon: '🌊', category: 'theme', bgClass: 'bg-cyan-50' },
+];
+

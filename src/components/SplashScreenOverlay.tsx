@@ -126,14 +126,13 @@ export const SplashScreenOverlay: React.FC<SplashScreenOverlayProps> = ({ onFini
         position: 'relative',
         zIndex: 10,
         width: '100%',
-        padding: '0 0 env(safe-area-inset-bottom, 24px) 0',
         background: 'linear-gradient(to top, rgba(15,23,42,0.85) 0%, transparent 100%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '10px',
         paddingTop: '48px',
-        paddingBottom: '32px',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 32px)',
       }}>
 
         {/* Puppy chasing a number animation */}

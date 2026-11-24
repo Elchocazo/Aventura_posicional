@@ -21,6 +21,10 @@
 -keep class com.google.android.gms.ads.** { *; }
 -dontwarn com.google.android.gms.**
 
+# --- Google Play Billing ---
+-keep class com.android.billingclient.** { *; }
+-dontwarn com.android.billingclient.**
+
 # --- Cordova plugins ---
 -keep class org.apache.cordova.** { *; }
 -dontwarn org.apache.cordova.**

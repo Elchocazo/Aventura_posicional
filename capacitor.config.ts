@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.ejemplo.aventuramatematica',
   appName: 'NumiMates',
   webDir: 'dist',
-  bundledWebRuntime: false,
   server: {
     androidScheme: 'https',
     cleartext: false,
